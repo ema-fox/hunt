@@ -54,24 +54,6 @@ draw = ->
   ctx.fillStyle = '#ddaa00'
   fillRect ctx, [10, 10], [((Math.sqrt deathbunnycount)) * 10, 10]
   #fillRect ctx, [10, 30], [bunnies.length(), 10]
-  drawStat 'thres', 400
-  ctx.fillStyle = '#dd0033'
-  drawStat 'flee', 100
-
-drawStat = (w, start) ->
-  min = 99999999
-  max = 0
-  avg = 0
-  bunnies.each (b) ->
-    avg += b[w]
-    min = Math.min min, b[w]
-    max = Math.max max, b[w]
-  if bunnies.length() > 0
-    avg /= bunnies.length()
-  fillRect ctx, [min, 30], [10, 10]
-  fillRect ctx, [max, 30], [10, 10]
-  fillRect ctx, [avg, 30], [10, 10]
-  fillRect ctx, [start, 25], [10, 10]
 
 
 hitp = (bunny) ->
@@ -82,13 +64,12 @@ hitp = (bunny) ->
   false
 
 
-# odd number because of bunny bounding box (bbb)
-# go figure out the comment above ;)
+# the numbers are not quite 5000 because this would mean that flowers would get to a place where bunnies would seek them but wouldn't reach
 randpos = -> [4950 * Math.random(), 4950 * Math.random()]
 
 step = ->
   pos = plus pos, posm
-  bunnies.add({p: randpos(), alarmed: false, life: 100, thres: 400, flee: 100}) if bunnies.length() < 1
+  bunnies.add({p: randpos(), alarmed: false, life: 100}) if bunnies.length() < 1
   flowers.add({p: randpos(), death: false})
   arrows = for {p, m, h} in arrows when h > 1
     {p: (plus p, m), m, h: h - 1}
@@ -104,7 +85,7 @@ step = ->
       if (pyth minus bunny.p, otherbunny.p) < 50
         bunny.p = plus bunny.p, mult (direction otherbunny.p, bunny.p), 2
     dist = pyth minus pos, bunny.p
-    if dist < bunny.flee #&& false
+    if dist < 150 #&& false
       bunny.alarmed = true
       ###
       for otherbunny in bunnies.near bunny.p
@@ -113,18 +94,16 @@ step = ->
           otherbunny.alarmed = true
       ###
     if bunny.alarmed
-      bunny.alarmed = dist < bunny.flee * 4
+      bunny.alarmed = dist < 600
       bunny.p = plus bunny.p, mult (direction pos, bunny.p), 10
     else
-      if bunny.life > bunny.thres
+      if bunny.life > 1000
         bunny.life -= 200
         bunny.life /= 2
         newbunnies.add {
           p: (plus bunny.p, [20, 20]), 
           alarmed: false,
-          life: bunny.life,
-          thres: bunny.thres + (Math.random() - 0.5) * 70
-          flee: Math.max 0, bunny.flee + (Math.random() - 0.5) * 70}
+          life: bunny.life}
       f = {p: [99999,99999]}
       for f2 in flowers.near bunny.p
         if (distance f.p, bunny.p) > (distance f2.p, bunny.p)
