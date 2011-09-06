@@ -1,110 +1,36 @@
+progressCounter = 0
+progress = ->
+  progressCounter++
+  #if ctx?
+    #fillRect ctx, [0, 100], [progressCounter, 10]
+
+initStubs = []
+
+runStubs = (stubs) ->
+  if stubs.length > 1
+    stubs.shift()()
+    progress()
+    setTimeout (-> runStubs stubs), 1
+
 arrows = []
 bunnies = new parray 5000, 500
 deathbunnies = []
 flowers = new parray 5000, 500
+patches = []
 
-pathdepth = 10
 
 # the numbers are not quite 5000 because this would mean that flowers would get to a place where bunnies would seek them but wouldn't reach
 randpos = -> 
-  res = [4950 * Math.random(), 4950 * Math.random()]
-  for {p, r} in rocks.near res
-    if (distance p, res) < r
-      return randpos()
-  res
-
-rocks = new parray 5000, 500
-###
-setRock = ({p, r}, arc) ->
-  if ptrue 0.1
-    setRock {p, r * 0.7}, arc - 1
-    setRock {p, r * 0.7}, arc - 2
-  else
-    arc += Math.random() - 0.5 
-    newrock = 
-      p: (plus p, (mult [(Math.sin arc), (Math.cos arc)], r * 1.5)),
-      r: Math.min(200, (Math.random() + 0.4) * r)
-    rocks.add newrock
-    if newrock.r > 10
-      setRock newrock, arc
-
-setRock {p: [2500, 2500], r: 200}, 0
-setRock {p: [2500, 2500], r: 200}, Math.PI
-###
-for i in [0..5000]
-  p = randpos()
-  m = mult (sincos Math.random() * Math.PI * 2), 50
-  loop
-    p = plus p, m
-    r = {p: [99999, 99999]}
-    rocks.eachin (minus p, [400, 400]), [800, 800], (r2) ->
-      if (Math.min (distance p, r.p), 400) > (distance p, r2.p) 
-        r = r2
-    if r.p[0] != 99999
-      if ptrue r.r / 200
-        rocks.add {p: (plus r.p, (mult (direction r.p, p), r.r * 1.7)), r: 5}
-      else
-        r.r += 5
-      break
-    else
-      if p[0] < 0
-        rocks.add {p: [0, p[1]], r: 5}
-        break
-      else if p[0] > 5000
-        rocks.add {p: [4999, p[1]], r: 5}
-        break
-      else if p[1] < 0
-        rocks.add {p: [p[0], 0], r: 5}
-        break
-      else if p[1] > 5000
-        rocks.add {p: [p[0], 4999], r: 5}
-        break
-
-newrocks = new parray 5000, 500
-rocks.each (rck) ->
-  foo = true
-  rocks.eachin (minus rck.p, [rck.r, rck.r]), [rck.r * 2, rck.r * 2], (rck2) ->
-    b = distance rck.p, rck2.p
-    if b + rck.r < rck2.r
-      foo = false
-  if foo
-    newrocks.add rck
-
-rocks = newrocks
-
-rocks.each (rck) ->
-  rck.n = []
-  rocks.eachin (minus rck.p, [400, 400]), [800, 800], (rck2) ->
-    b = distance rck.p, rck2.p
-    if b > 0 && b < rck.r + rck2.r
-      foo = Math.acos (rck.r * rck.r + b * b - rck2.r * rck2.r) / (2 * rck.r * b)
-      bar = asincos (direction rck.p, rck2.p)
-      rck.n.push [bar + foo, bar - foo, rck2]
-
-###
-foo = (r) ->
-  r.r++
-  rdist = distance r.p, [2500, 2500]
-  r3 = {p: [99999, 99999]}
-  for r2 in rocks.near r.p
-    if rdist < (distance r2.p, [2500, 2500]) && (distance r3.p, r.p) > (distance r2.p, r.p)
-      r3 = r2
-  if r3.p[0] != 99999
-    foo r3
+  [4950 * Math.random(), 4950 * Math.random()]
 
 
-
-
-rocks.each (r) ->
-  foo r
-###
-
-pos = [1250, 1250]
-dogpos = [1300, 1300]
+pos = null
+dogpos = null
+doggoal = null
 doghasbunny = false
 dogrun = false
 dogpath = []
-doggoal = pos
+dogspeed = 0
 deathbunnycount = 0
 mp = [0, 0]
 quux = 0
@@ -117,109 +43,116 @@ right = false
 
 drawPs = []
 
-bg = loadImg 'bg.png'
-bg2 = loadImg 'bg2.png'
+#bg = loadImg 'bg.png'
+#bg2 = loadImg 'bg2.png'
 brownbunny = loadImg 'brownbunny.png'
 deathbrownbunny = loadImg 'deathbrownbunny.png'
 dog = loadImg 'dog.png'
 flower = loadImg 'flower.png'
 hunter = loadImg 'hunter.png'
 
-rou_ound = (rck, start, goal, sign, depth) ->
-  if rck == start || rck == goal
-    return path start, goal, sign, depth - 1
-  bar = cctangent start, rck, sign 
-  bar2 = cctangent goal, rck, sign * -1 
-  avg = ((bar + bar2 + (if bar * sign > bar2 * sign then tau else 0)) / 2)
-  r = (arcdist bar, bar2) / 2
-  for i in rck.n
-    if (arcdist ((i[0] + i[1]) / 2), avg) < ((arcdist i[0], i[1]) / 2 + r) && depth > 0
-      #return (path start, rck, sign, depth - 1).concat [rck], (rou_ound i[2], rck, goal, sign, depth - 1)
-      #return (path start, rck, sign, depth - 1).concat [rck], (rou_ound i[2], rck, rck, sign, depth - 1), [rck], (path rck, goal, sign, depth - 1)
-      return (path start, rck, sign, depth - 1).concat [rck], (path rck, i[2], sign, depth - 1), [i[2]], (path i[2], goal, sign, depth - 1)
-      #return rou_ound(i[2], start, goal, sign, depth - 1)
-  #if depth < 1
-    #console.trace()
-    #throw 'bar'
-  foo = path start, rck, sign, depth - 1
-  foo2 = path rck, goal, sign, depth - 1
-  return foo.concat([rck], foo2)
+initStubs.push ->
+  patches =
+    for i in [0..100]
+      {r: 0, p: randpos(), n: []}
 
-cleanPath = (pth, sign) ->
-  if pth.length > 6
-    p1 = ponc pth[1], pth[2]
-    p2 = ponc pth[3], pth[2]
-    p3 = ponc pth[3], pth[4]
-    p4 = ponc pth[5], pth[4]
-    [bool, croosp] = llcross p1, p2, p3, p4
-    if bool
-      (pth.slice 0, 2).concat (path pth[1], pth[5], sign, pathdepth), pth.slice 5
-    else
-      (pth.slice 0, 2).concat cleanPath (pth.slice 2), sign
-  else
-    pth
+initStubs.push ->
+  growingpatches = patches
+  while growingpatches.length > 0
+    newgrowingpatches = []
+    for patch in growingpatches
+      patch.r += 5
+      if not (100 + patch.r < patch.p[0] < 4900 - patch.r && 100 + patch.r < patch.p[1] < 4900 - patch.r)
+        continue
+      ngb = -> one patches, ((other) -> other != patch && patch.r + other.r - 10> distance patch.p, other.p)
+      other = ngb()
+      if other
+        patch.p = plus patch.p, (mult (direction other.p, patch.p), 10)
+        if not ngb()
+          newgrowingpatches.push patch
+      else
+        newgrowingpatches.push patch
+    growingpatches = newgrowingpatches
 
-#depth is sometimes maxed out. needs debugging
-path = (start, goal, sign, depth) ->
-  if start == goal
-    console.trace()
-    drawPs.push start.p
-    #@dbg = [start, depth]
-    throw 'start == goal'
-    #gets triggert sometimes
-    #pr depth
-  foo = cctangent start, goal, sign
-  if isNaN(foo)
-    foo = 0
-  obst = false
-  pa = ponc start, foo
-  pb = ponc goal, foo
-  rocks.eachin (minus (min pa, pb), [200, 200]), (plus (abs minus pa, pb), [200, 200]), (rck) ->
-    if start != rck && goal != rck && (pldist pa, pb, rck.p) < rck.r
-      obst = rck
-  if obst && depth > 0
-    return rou_ound obst, start, goal, sign, depth - 0
-  else
-    #if depth < 1
-    #  console.trace()
-    #  throw 'foo'
-    return [foo]
+initStubs.push ->
+  for patch in patches
+    for other in patches when patch != other
+      if (distance patch.p, other.p) < patch.r + other.r
+        patch.n.push other
+
+initStubs.push ->
+  pos = patches[0].p
+  dogpos = plus pos, [patches[0].r / 2, 0]
+  doggoal = pos
+  quux = setInterval (->
+    try
+      step()
+    catch err
+      clearInterval quux
+      throw err
+  ), 40
+
+@bgcanvas = ($ '<canvas width="5000" height="5000">')[0]
+bgctx = bgcanvas.getContext '2d'
+initStubs.push ->
+  bgctx.fillStyle = '#bbaaaa'
+  fillRect bgctx, [0, 0], [5000, 5000]
+  bgctx.beginPath()
+  for {r, p} in patches
+    moveTo bgctx, p
+    arc bgctx, p, r, 0, tau
+  bgctx.clip()
+
+
+drawBg = (name) ->
+  bg = new Image()
+  ($ bg).ready ->
+    console.debug name
+    bgsize = bg.width
+    for x in [0..(5000 / bgsize | 0)]
+      ((x) ->
+        initStubs.push ->
+          for y in [0..(5000 / bgsize | 0)]
+            bgctx.drawImage bg, x*bgsize, y*bgsize)(x)
+  bg.src = name
+
+drawBg 'bg.png'
+drawBg 'bg2.png'
+
 
 draw = ->
   #clearRect ctx, [0, 0], [500, 500]
   ctx.fillStyle = '#000000'
-  #fillRect ctx, [0, 0], [1000, 500]
+  fillRect ctx, [0, 0], [1000, 500]
   ctx.save()
   translate ctx, minus [500, 250], pos
-  #make a function
-  foo = bg.width
-  for x in [((pos[0] - 500) / foo | 0)..((pos[0] + 500) / foo | 0)]
-    for y in [((pos[1] - 250) / foo | 0)..((pos[1] + 250) / foo | 0)]
-      ctx.drawImage bg, x*foo, y*foo
-  foo = bg2.width
-  for x in [((pos[0] - 500) / foo | 0)..((pos[0] + 500) / foo | 0)]
-    for y in [((pos[1] - 250) / foo | 0)..((pos[1] + 250) / foo | 0)]
-      ctx.drawImage bg2, x*foo, y*foo
-  #ctx.fillStyle = '#bbaaaa'
-  ctx.fillStyle = 'rgba(200, 150, 150, 0.5)'
-  rocks.eachin (minus pos, [700, 450]), [1400, 900], (rck) -> 
-    ctx.beginPath()
-    arc ctx, rck.p, rck.r, 0, -Math.PI * 2
-    ctx.fill()
-  ctx.fillStyle = '#000000'
+  drawImage ctx, bgcanvas, [0, 0]
+  ###
+  for patch in patches
+    if (distance patch.p, pos) < patch.r
+      ctx.strokeStyle = '#aa0000'
+      ctx.beginPath()
+      arc ctx, patch.p, patch.r, 0, tau
+      ctx.stroke()
+      ctx.strokeStyle = '#aa9900'
+      for {p, r} in patch.n
+        ctx.beginPath()
+        arc ctx, p, r, 0, tau
+        ctx.stroke()
+  ###
+  ctx.strokeStyle = '#000000'
+  ###
   ctx.beginPath()
   moveTo ctx, dogpos
-  i = 1
-  while i < dogpath.length - 1
-    arc ctx, dogpath[i].p, dogpath[i].r, dogpath[i-1], dogpath[i+1], true
-    i += 2
-  lineTo ctx, doggoal
+  for p in dogpath
+    lineTo ctx, p
   ctx.stroke()
+  ###
   for {p} in deathbunnies
     drawImage ctx, deathbrownbunny, (minus p, [20, 20])
-  for {p, death} in flowers.near pos
+  flowers.eachin (minus pos, [500, 250]), [1000, 500], ({p}) ->
     drawImage ctx, flower, (minus p, [10, 10])
-  for {p} in bunnies.near pos
+  bunnies.eachin (minus pos, [500, 250]), [1000, 500], ({p}) ->
     drawImage ctx, brownbunny, (minus p, [20, 20])
   drawImage ctx, dog, (minus dogpos, [20, 20])
   if doghasbunny
@@ -241,9 +174,6 @@ draw = ->
     p = plus [30, 30], [i ^ (i * 31.31) % 50, i ^ (i * 42.42) % 50]
     drawImage ctx, deathbrownbunny, p
 
-
-
-
 hitp = (bunny) ->
   for a in arrows
     if contains (plus a.p, a.m), (minus bunny.p, [20, 20]), (plus bunny.p, [20, 20])
@@ -251,52 +181,93 @@ hitp = (bunny) ->
       return true
   false
 
-bouncerock = (p) ->
-  run = true
-  while run
-    run = false
-    rocks.eachin (minus p, [200, 200]), [400, 400], ({p: p2, r}) -> 
-      dist = distance p2, p
-      if dist < r
-        run = true
-        p = plus p, (mult (direction p2, p), 0.01 + r - dist)
-  p
+intersect = (patch1, patch2) ->
+  plus patch1.p, (mult (direction patch1.p, patch2.p), patch1.r)
+
+#I wish you luck understanding this function and i'm sorry that i didn't document it
+pathing = (p1, p2) ->
+  p1patch = false
+  for patch in patches
+    if (distance p1, patch.p) < patch.r
+      p1patch = patch
+      break
+  p2patch = false
+  for patch in patches
+    if (distance p2, patch.p) < patch.r
+      p2patch = patch
+      break
+  if not p2patch
+    return [p1]
+  else if p2patch == p1patch || not p1patch
+    return [p2]
+  else
+    open = [{heurD: (distance p1, p2), measD: 0, p: [p2patch]}]
+    closed = []
+    loop
+      open.sort (a, b) ->
+        (a.heurD + a.measD) - (b.heurD + b.measD)
+      if open.length == 0
+        return [p1]
+      pth = open.shift()
+      closed.push pth.p[0]
+      for n in pth.p[0].n
+        if n == p1patch
+          return [(intlvmap [n, pth.p...], intersect)..., p2]
+        bar = one closed, (x) ->
+          x == n
+        if not bar
+          newpath =
+            heurD: (distance p1, (intersect pth.p[0], n))
+            measD: (pth.measD + (distance (intersect pth.p[0], n), (if pth.p.length > 1 then (intersect pth.p[0], pth.p[1]) else p2)))
+            p: [n, pth.p...]
+          bla = true
+          for j in [0...(open.length)]
+            if open[j].p[0] == n
+              if open[j].heurD + open[j].measD > newpath.heurD + newpath.measD
+                open[j] = newpath
+              bla = false
+              break
+          if bla
+            open.push newpath
 
 step = ->
   goal = [pos[0] + (if right then 1 else 0) - (if left then 1 else 0), pos[1] + (if down then 1 else 0) - (if up then 1 else 0)]
-  pos = bouncerock plus pos, (mult (direction pos, goal), 6)
-  bunnies.add({p: randpos(), alarmed: false, life: 100}) if bunnies.length() < 5
-  flowers.add({p: randpos(), death: false})
+  pos = plus pos, (mult (direction pos, goal), 6)
+  bunnies.add {p: randpos(), alarmed: false, life: 100} if bunnies.length() < 5
+  fp = randpos()
+  foo = false
+  for {p, r} in patches
+    if (distance fp, p) < r
+      foo = true
+  if foo
+    flowers.add {p: fp, death: false}
   newarrows = []
   for a in arrows
     a.p = plus a.p, a.m
-    for {p, r} in rocks.near a.p
-      if (distance a.p, p) < r
-        a.h = 0
     if a.h > 1
       a.h -= 1
       newarrows.push a
   arrows = newarrows
   newbunnies = new parray 5000, 500
   bunnies.each (bunny) -> 
+    bunnygoal = bunny.p
+    bunnyspeed = 0
     if (hitp bunny)
       deathbunnies.push bunny
       return
     if bunny.life < 1
       return 
     bunny.life--
-    for otherbunny in bunnies.near bunny.p when not (bunny == otherbunny)
-      if (pyth minus bunny.p, otherbunny.p) < 50
-        bunny.p = bouncerock plus bunny.p, mult (direction otherbunny.p, bunny.p), 2
-    dist = pyth minus pos, bunny.p
-    if dist < 150 #&& false
-      for otherbunny in bunnies.near bunny.p
-        dist2 = pyth minus bunny.p, otherbunny.p
+    dist = distance pos, bunny.p
+    if dist < 150
+      bunnies.eachin (minus bunny.p, [150, 150]), [300, 300], (otherbunny) ->
+        dist2 = distance bunny.p, otherbunny.p
         if dist2 < 150
           otherbunny.alarmed = true
     if bunny.alarmed
       bunny.alarmed = dist < 600
-      bunny.p = bouncerock plus bunny.p, mult (direction pos, bunny.p), 10
+      bunnyspeed = 10
+      bunnygoal = plus bunny.p, mult (direction pos, bunny.p), 100
     else
       if bunny.life > 1000
         bunny.life -= 200
@@ -306,35 +277,25 @@ step = ->
           alarmed: false,
           life: bunny.life}
       f = {p: [99999,99999]}
-      for f2 in flowers.near bunny.p
+      flowers.eachin (minus bunny.p, [500, 500]), [1000, 1000], (f2) ->
         if (distance f.p, bunny.p) > (distance f2.p, bunny.p)
           if (distance f2.p, bunny.p) > (distance f2.p, pos)
             other = true
           else 
             other = false
-            for otherbunny in bunnies.near bunny.p when not (bunny == otherbunny)
-              if (distance f2.p, bunny.p) > (distance f2.p, otherbunny.p)
-                other = true
-                break
-          if not other
-            for {p, r} in rocks.near bunny.p
-              if (pldist bunny.p, f2.p, p) < r
+            bunnies.eachin (minus bunny.p, [50, 50]), [100, 100], (otherbunny) ->
+              if (bunny != otherbunny) && (distance f2.p, bunny.p) > (distance f2.p, otherbunny.p)
                 other = true
           if not other
             f = f2
       if f.p[0] != 99999
-        bunny.p = bouncerock plus bunny.p, mult (direction bunny.p, f.p), 8
-        if (pyth minus f.p, bunny.p) < 20
+        bunnyspeed = 8
+        bunnygoal = f.p
+        if (distance f.p, bunny.p) < 20
           bunny.life += 50
           f.death = true
-    if bunny.p[0] < 0
-      bunny.p[0] = 0
-    else if bunny.p[0] > 4960
-      bunny.p[0] = 4960
-    if bunny.p[1] < 0
-      bunny.p[1] = 0
-    else if bunny.p[1] > 4960
-      bunny.p[1] = 4960
+    bunnypath = pathing bunny.p, bunnygoal
+    bunny.p = plus bunny.p, mult (direction bunny.p, bunnypath[0]), bunnyspeed
     newbunnies.add bunny
   bunnies = newbunnies
   doggoal = dogpos
@@ -343,7 +304,7 @@ step = ->
       deathbunnycount++
       doghasbunny = false
     else
-      dogpos = bouncerock plus dogpos, mult (direction dogpos, pos), 10
+      dogspeed = 10
       doggoal = pos
   else
     db = {p: [99999, 99999]}
@@ -352,19 +313,18 @@ step = ->
       if dist < 500 && dist < (distance dogpos, db.p)
         db = db2
     if db.p[0] != 99999
-      dogpos = bouncerock plus dogpos, mult (direction dogpos, db.p), 10
+      dogspeed = 10
       doggoal = db.p
     else if dogrun
       if (distance dogpos, pos) > 90
-        dogpos = bouncerock plus dogpos, mult (direction dogpos, pos), 7
+        dogspeed = 7
         doggoal = pos
       else
         dogrun = false
     else if (distance dogpos, pos) > 250
       dogrun = true
-  dogpath = cleanPath (path {p: dogpos, r: 0}, {p: doggoal, r: 0}, 1, pathdepth), 1
-  for i in [0..20]
-    dogpath = cleanPath dogpath, 1
+  dogpath = pathing dogpos, doggoal
+  dogpos = plus dogpos, mult (direction dogpos, dogpath[0]), dogspeed
   newdeathbunnies = []
   for db in deathbunnies
     if (distance db.p, pos) < 50 
@@ -402,10 +362,6 @@ step = ->
       up = false
     when 'D'
       right = false
-    when 'T'
-      pathdepth--
-    when 'Z'
-      pathdepth++
       
 shoot = ->
   arrows.push {h: 30, p: pos, m: mult (direction pos, (plus mp, (minus pos, [500, 250]))), 20}
@@ -413,17 +369,11 @@ shoot = ->
 shootId = false
 
 $ ->
-  quux = setInterval (->
-    try
-      step()
-    catch err
-      clearInterval quux
-      throw err
-  ), 40
-  #setTimeout (-> clearInterval quux), 100
+  runStubs initStubs
   cnvs = $ 'canvas'
   ($ 'canvas').mousemove (evt) ->
     mp = minus [evt.pageX, evt.pageY], [cnvs.offset().left, cnvs.offset().top]
+    evt.preventDefault()
   ($ 'canvas').click ->
     shoot()
   ($ 'canvas').mousedown ->
