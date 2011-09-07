@@ -7,7 +7,7 @@ progress = ->
 initStubs = []
 
 runStubs = (stubs) ->
-  if stubs.length > 1
+  if stubs.length > 0
     stubs.shift()()
     progress()
     setTimeout (-> runStubs stubs), 1
@@ -92,16 +92,20 @@ initStubs.push ->
       throw err
   ), 40
 
-@bgcanvas = ($ '<canvas width="5000" height="5000">')[0]
-bgctx = bgcanvas.getContext '2d'
+grasscanvas = ($ '<canvas width="5000" height="5000">')[0]
+grassctx = grasscanvas.getContext '2d'
+rockcanvas = ($ '<canvas width="5000" height="5000">')[0]
+rockctx = rockcanvas.getContext '2d'
 initStubs.push ->
-  bgctx.fillStyle = '#bbaaaa'
-  fillRect bgctx, [0, 0], [5000, 5000]
-  bgctx.beginPath()
+  rockctx.fillStyle = '#bbaaaa'
+  fillRect rockctx, [0, 0], [5000, 5000]
+  rockctx.globalCompositeOperation = 'destination-out'
   for {r, p} in patches
-    moveTo bgctx, p
-    arc bgctx, p, r, 0, tau
-  bgctx.clip()
+    rockctx.beginPath()
+    #moveTo rockctx, p
+    arc rockctx, p, r, 0, tau + 0.001
+    rockctx.fill()
+  #rockctx.globalCompositeOperation = 'source-over'
 
 
 drawBg = (name) ->
@@ -113,11 +117,14 @@ drawBg = (name) ->
       ((x) ->
         initStubs.push ->
           for y in [0..(5000 / bgsize | 0)]
-            bgctx.drawImage bg, x*bgsize, y*bgsize)(x)
+            grassctx.drawImage bg, x*bgsize, y*bgsize)(x)
+    initStubs.push ->
+      drawImage grassctx, rockcanvas, [0, 0]
   bg.src = name
 
 drawBg 'bg.png'
 drawBg 'bg2.png'
+
 
 
 draw = ->
@@ -126,7 +133,8 @@ draw = ->
   fillRect ctx, [0, 0], [1000, 500]
   ctx.save()
   translate ctx, minus [500, 250], pos
-  drawImage ctx, bgcanvas, [0, 0]
+  drawImage ctx, grasscanvas, [0, 0]
+  #drawImage ctx, rockcanvas, [0, 0]
   ###
   for patch in patches
     if (distance patch.p, pos) < patch.r
