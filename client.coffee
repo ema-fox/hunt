@@ -50,29 +50,28 @@ deathbrownbunny = loadImg 'deathbrownbunny.png'
 dog = loadImg 'dog.png'
 flower = loadImg 'flower.png'
 hunter = loadImg 'hunter.png'
-
+#let them drop
 initStubs.push ->
   patches =
     for i in [0..100]
-      {r: 0, p: randpos(), n: []}
+      {r: 40 + Math.random() * 200, p: [2500 + Math.random(), 2500 + Math.random()], n: []}
 
 initStubs.push ->
-  growingpatches = patches
-  while growingpatches.length > 0
-    newgrowingpatches = []
-    for patch in growingpatches
-      patch.r += 5
-      if not (100 + patch.r < patch.p[0] < 4900 - patch.r && 100 + patch.r < patch.p[1] < 4900 - patch.r)
-        continue
-      ngb = -> one patches, ((other) -> other != patch && patch.r + other.r - 10> distance patch.p, other.p)
-      other = ngb()
-      if other
-        patch.p = plus patch.p, (mult (direction other.p, patch.p), 10)
-        if not ngb()
-          newgrowingpatches.push patch
-      else
-        newgrowingpatches.push patch
-    growingpatches = newgrowingpatches
+  foo = true
+  i = 0
+  while foo && i < 1000
+    i++
+    foo = false
+    if true || confirm 'foo?'
+      for patch in patches
+        for other in patches when patch != other
+          dist = distance patch.p, other.p
+          rr = patch.r + other.r
+          if dist + 5 < rr
+            foo = true
+            patch.p = plus patch.p, (direction other.p, patch.p)
+          else if dist - 5 < rr
+            patch.p = plus patch.p, (mult (direction patch.p, other.p), 0.5)
 
 initStubs.push ->
   for patch in patches
@@ -102,7 +101,6 @@ initStubs.push ->
   rockctx.globalCompositeOperation = 'destination-out'
   for {r, p} in patches
     rockctx.beginPath()
-    #moveTo rockctx, p
     arc rockctx, p, r, 0, tau + 0.001
     rockctx.fill()
   #rockctx.globalCompositeOperation = 'source-over'
