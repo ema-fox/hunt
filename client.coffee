@@ -50,28 +50,58 @@ deathbrownbunny = loadImg 'deathbrownbunny.png'
 dog = loadImg 'dog.png'
 flower = loadImg 'flower.png'
 hunter = loadImg 'hunter.png'
+
 #let them drop
+###
 initStubs.push ->
   patches =
     for i in [0..100]
       {r: 40 + Math.random() * 200, p: [2500 + Math.random(), 2500 + Math.random()], n: []}
+###
+#control flow of doom !
+#also needs to be optimized
+initStubs.push ->
+  bla = 5000
+  while bla > 100 #patches.length < 100
+    flpatch = {r: 40 + Math.random() * 200, n: []}
+    flpatch.p = [flpatch.r + Math.random() * (5000 - flpatch.r * 2), "foo"]
+    bla = 5000
+    for i in patches
+      if (Math.abs flpatch.p[0] - i.p[0]) < flpatch.r + i.r
+        bla = Math.min bla, i.p[1] - i.r
+    console.debug bla
+    flpatch.p[1] = bla - flpatch.r
+    loop
+      #console.debug flpatch
+      if flpatch.p[0] - flpatch.r < 0 || flpatch.p[0] + flpatch.r > 5000 || flpatch.p[1] + flpatch.r > 5000
+        patches.push flpatch
+        break
+      obst = false
+      foo = false
+      for i in patches
+        if (distance i.p, flpatch.p) + 2 < i.r + flpatch.r
+          if obst
+            patches.push flpatch
+            foo = true
+            break
+          else
+            obst = i
+      if foo
+        break
+      if obst
+        flpatch.p[1] += 0.1
+        if obst.p[0] < flpatch.p[0]
+          flpatch.p[0]++
+        else
+          flpatch.p[0]--
+      else
+        flpatch.p[1]++
 
 initStubs.push ->
-  foo = true
   i = 0
-  while foo && i < 1000
-    i++
-    foo = false
-    if true || confirm 'foo?'
-      for patch in patches
-        for other in patches when patch != other
-          dist = distance patch.p, other.p
-          rr = patch.r + other.r
-          if dist + 5 < rr
-            foo = true
-            patch.p = plus patch.p, (direction other.p, patch.p)
-          else if dist - 5 < rr
-            patch.p = plus patch.p, (mult (direction patch.p, other.p), 0.5)
+  while i < patches.length
+    patches.slice i, 1
+    i += 4
 
 initStubs.push ->
   for patch in patches
