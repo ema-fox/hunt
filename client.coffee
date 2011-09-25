@@ -16,12 +16,20 @@ arrows = []
 bunnies = new parray 5000, 500
 deathbunnies = []
 flowers = new parray 5000, 500
-patches = []
-
+patches = new stparray 5000
+@patches = patches
 
 # the numbers are not quite 5000 because this would mean that flowers would get to a place where bunnies would seek them but wouldn't reach
 randpos = -> 
-  [4950 * Math.random(), 4950 * Math.random()]
+  loop
+    p = [5000 * Math.random(), 5000 * Math.random()]
+    foo = false
+    patches.eachin p, [0, 0], (patch) ->
+      if (distance patch.p, p) < patch.r
+        foo = true
+    if foo
+      return p
+  
 
 
 pos = null
@@ -51,39 +59,26 @@ dog = loadImg 'dog.png'
 flower = loadImg 'flower.png'
 hunter = loadImg 'hunter.png'
 
-#let them drop
-###
-initStubs.push ->
-  patches =
-    for i in [0..100]
-      {r: 40 + Math.random() * 200, p: [2500 + Math.random(), 2500 + Math.random()], n: []}
-###
 #control flow of doom !
 #also needs to be optimized
 initStubs.push ->
-  bla = 5000
-  while bla > 100 #patches.length < 100
+  while patches.length() < 100
     flpatch = {r: 40 + Math.random() * 200, n: []}
     flpatch.p = [flpatch.r + Math.random() * (5000 - flpatch.r * 2), "foo"]
-    bla = 5000
-    for i in patches
-      if (Math.abs flpatch.p[0] - i.p[0]) < flpatch.r + i.r
-        bla = Math.min bla, i.p[1] - i.r
-    console.debug bla
-    flpatch.p[1] = bla - flpatch.r
+    flpatch.p[1] = 0 - flpatch.r
     loop
-      #console.debug flpatch
       if flpatch.p[0] - flpatch.r < 0 || flpatch.p[0] + flpatch.r > 5000 || flpatch.p[1] + flpatch.r > 5000
-        patches.push flpatch
+        patches.add flpatch
         break
       obst = false
       foo = false
-      for i in patches
+      mindist = 50
+      patches.eachin (minus flpatch.p, [flpatch.r, flpatch.r]), [flpatch.r * 2, flpatch.r * 2 + 50], (i) ->
+        mindist = Math.min mindist, (distance i.p, flpatch.p) + 2 - i.r - flpatch.r
         if (distance i.p, flpatch.p) + 2 < i.r + flpatch.r
-          if obst
-            patches.push flpatch
+          if obst && not foo
+            patches.add flpatch
             foo = true
-            break
           else
             obst = i
       if foo
@@ -95,23 +90,25 @@ initStubs.push ->
         else
           flpatch.p[0]--
       else
-        flpatch.p[1]++
-
+        flpatch.p[1] += Math.max 1, mindist
+###
 initStubs.push ->
   i = 0
   while i < patches.length
     patches.slice i, 1
     i += 4
-
+###
 initStubs.push ->
-  for patch in patches
-    for other in patches when patch != other
-      if (distance patch.p, other.p) < patch.r + other.r
+  patches.each (patch) ->
+    patches.eachin (minus patch.p, [patch.r, patch.r]), [patch.r * 2, patch.r * 2], (other) ->
+      if patch != other && (distance patch.p, other.p) < patch.r + other.r
         patch.n.push other
 
 initStubs.push ->
-  pos = patches[0].p
-  dogpos = plus pos, [patches[0].r / 2, 0]
+  #this is stupid and slow but i'm to lazy to fix it now
+  patches.each ({p, r}) ->
+    pos = p
+    dogpos = plus pos, [r / 2, 0]
   doggoal = pos
   quux = setInterval (->
     try
@@ -129,7 +126,7 @@ initStubs.push ->
   rockctx.fillStyle = '#bbaaaa'
   fillRect rockctx, [0, 0], [5000, 5000]
   rockctx.globalCompositeOperation = 'destination-out'
-  for {r, p} in patches
+  patches.each ({r, p}) -> 
     rockctx.beginPath()
     arc rockctx, p, r, 0, tau + 0.001
     rockctx.fill()
@@ -163,19 +160,6 @@ draw = ->
   translate ctx, minus [500, 250], pos
   drawImage ctx, grasscanvas, [0, 0]
   #drawImage ctx, rockcanvas, [0, 0]
-  ###
-  for patch in patches
-    if (distance patch.p, pos) < patch.r
-      ctx.strokeStyle = '#aa0000'
-      ctx.beginPath()
-      arc ctx, patch.p, patch.r, 0, tau
-      ctx.stroke()
-      ctx.strokeStyle = '#aa9900'
-      for {p, r} in patch.n
-        ctx.beginPath()
-        arc ctx, p, r, 0, tau
-        ctx.stroke()
-  ###
   ctx.strokeStyle = '#000000'
   ###
   ctx.beginPath()
@@ -223,15 +207,13 @@ intersect = (patch1, patch2) ->
 #I wish you luck understanding this function and i'm sorry that i didn't document it
 pathing = (p1, p2) ->
   p1patch = false
-  for patch in patches
+  patches.eachin p1, [0, 0], (patch) ->
     if (distance p1, patch.p) < patch.r
       p1patch = patch
-      break
   p2patch = false
-  for patch in patches
+  patches.eachin p2, [0, 0], (patch) ->
     if (distance p2, patch.p) < patch.r
       p2patch = patch
-      break
   if not p2patch
     return [p1]
   else if p2patch == p1patch || not p1patch
@@ -268,15 +250,12 @@ pathing = (p1, p2) ->
 
 step = ->
   goal = [pos[0] + (if right then 1 else 0) - (if left then 1 else 0), pos[1] + (if down then 1 else 0) - (if up then 1 else 0)]
-  pos = plus pos, (mult (direction pos, goal), 6)
+  goal = plus pos, (mult (direction pos, goal), 6)
+  patches.eachin goal, [0, 0], (patch) ->
+    if (distance patch.p, goal) < patch.r
+      pos = goal
   bunnies.add {p: randpos(), alarmed: false, life: 100} if bunnies.length() < 5
-  fp = randpos()
-  foo = false
-  for {p, r} in patches
-    if (distance fp, p) < r
-      foo = true
-  if foo
-    flowers.add {p: fp, death: false}
+  flowers.add {p: randpos(), death: false}
   newarrows = []
   for a in arrows
     a.p = plus a.p, a.m
@@ -309,7 +288,7 @@ step = ->
         bunny.life -= 200
         bunny.life /= 2
         newbunnies.add {
-          p: (plus bunny.p, [20, 20]), 
+          p: (plus bunny.p, [0, 0]), 
           alarmed: false,
           life: bunny.life}
       f = {p: [99999,99999]}
