@@ -1,25 +1,18 @@
-progressCounter = 0
-progress = ->
-  progressCounter++
-  #if ctx?
-    #fillRect ctx, [0, 100], [progressCounter, 10]
-
 initStubs = []
 
 runStubs = (stubs) ->
   if stubs.length > 0
     stubs.shift()()
-    progress()
     setTimeout (-> runStubs stubs), 1
 
 arrows = []
 bunnies = new parray 5000, 500
 deathbunnies = []
 flowers = new parray 5000, 500
+zombies = new parray 5000, 500
 patches = new stparray 5000
 @patches = patches
 
-# the numbers are not quite 5000 because this would mean that flowers would get to a place where bunnies would seek them but wouldn't reach
 randpos = -> 
   loop
     p = [5000 * Math.random(), 5000 * Math.random()]
@@ -29,8 +22,6 @@ randpos = ->
         foo = true
     if foo
       return p
-  
-
 
 pos = null
 dogpos = null
@@ -48,11 +39,8 @@ down = false
 left = false
 right = false
 
-
 drawPs = []
 
-#bg = loadImg 'bg.png'
-#bg2 = loadImg 'bg2.png'
 brownbunny = loadImg 'brownbunny.png'
 deathbrownbunny = loadImg 'deathbrownbunny.png'
 dog = loadImg 'dog.png'
@@ -68,6 +56,7 @@ initStubs.push ->
     flpatch.p[1] = 0 - flpatch.r
     loop
       if flpatch.p[0] - flpatch.r < 0 || flpatch.p[0] + flpatch.r > 5000 || flpatch.p[1] + flpatch.r > 5000
+        flpatch.p[1] = Math.min 5000 - flpatch.r, flpatch.p[1]
         patches.add flpatch
         break
       obst = false
@@ -135,7 +124,8 @@ initStubs.push ->
 
 drawBg = (name) ->
   bg = new Image()
-  ($ bg).ready ->
+  ($ bg).load ->
+    # the image is not loades in chrome at this point
     console.debug name
     bgsize = bg.width
     for x in [0..(5000 / bgsize | 0)]
@@ -149,8 +139,6 @@ drawBg = (name) ->
 
 drawBg 'bg.png'
 drawBg 'bg2.png'
-
-
 
 draw = ->
   #clearRect ctx, [0, 0], [500, 500]
@@ -178,6 +166,8 @@ draw = ->
   if doghasbunny
     drawImage ctx, deathbrownbunny, (minus dogpos, [10, 10])
   drawImage ctx, hunter, (minus pos, [20, 20])
+  zombies.each ({p}) ->
+    fillRect ctx, (minus p, [20, 20]), [40, 40]
   for {p, m} in arrows
     ctx.beginPath()
     moveTo ctx, p
@@ -248,6 +238,10 @@ pathing = (p1, p2) ->
           if bla
             open.push newpath
 
+walk = (start, goal, speed) ->
+  path = pathing start, goal
+  plus start, mult (direction start, path[0]), speed
+
 step = ->
   goal = [pos[0] + (if right then 1 else 0) - (if left then 1 else 0), pos[1] + (if down then 1 else 0) - (if up then 1 else 0)]
   goal = plus pos, (mult (direction pos, goal), 6)
@@ -255,7 +249,8 @@ step = ->
     if (distance patch.p, goal) < patch.r
       pos = goal
   bunnies.add {p: randpos(), alarmed: false, life: 100} if bunnies.length() < 5
-  flowers.add {p: randpos(), death: false}
+  flowers.add {p: randpos(), death: false} if ptrue 0.5
+  zombies.add {p: randpos(), sleep: 100} if ptrue 0.001
   newarrows = []
   for a in arrows
     a.p = plus a.p, a.m
@@ -338,8 +333,18 @@ step = ->
         dogrun = false
     else if (distance dogpos, pos) > 250
       dogrun = true
-  dogpath = pathing dogpos, doggoal
-  dogpos = plus dogpos, mult (direction dogpos, dogpath[0]), dogspeed
+  dogpos = walk dogpos, doggoal, dogspeed
+  zombies.each (zombie) ->
+    if zombie.sleep < 1
+      zombie.p = walk zombie.p, pos, 4
+      zombies.eachin (minus zombie.p, [40, 40]), [80, 80], (other) ->
+        if other != zombie && ptrue 0.01 && other.sleep < 1 #&& (distance other.p, zombie.p) < 40
+          zombie.sleep = 500
+      if (distance pos, zombie.p) < 10
+        pr "You die! but you got #{deathbunnycount} bunnies!"
+        throw "You die!"
+    else
+      zombie.sleep--
   newdeathbunnies = []
   for db in deathbunnies
     if (distance db.p, pos) < 50 
