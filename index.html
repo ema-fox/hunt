@@ -3,9 +3,31 @@
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
     <script type="text/javascript" src="lib2d.js"></script>
     <script type="text/javascript" src="client.js"></script>
+    <style type="text/css">
+body {
+  font-family: sans;
+  background: url(webbg.png);
+}
+
+canvas {
+  float: left;
+  padding-right: 1em;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+    </style>
   </head>
   <body>
     <canvas id="canvas" width="1000px" height="500px"></canvas>
+    <p>Move with WASD, shoot bunnies with your mouse and run away from the zombies (black squares).</p>
+    <p>send feedback and bug reports to ema-fox@web.de</p>
+    <p>fork it on <a href="https://github.com/ema-fox/hunt">github</a></p>
     <div id="dbg"> </div>
   </body>
 </html>

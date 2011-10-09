@@ -7,7 +7,7 @@
   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
   
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, left, mp, patches, pathing, pos, quux, randpos, right, rockcanvas, rockctx, runStubs, shoot, shootId, step, up, walk, zombies;
+  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, left, mp, patches, pathing, pos, randpos, right, rockcanvas, rockctx, runStubs, shoot, shootId, step, up, walk, zombies;
   var __slice = Array.prototype.slice;
   initStubs = [];
   runStubs = function(stubs) {
@@ -51,7 +51,7 @@
   dogspeed = 0;
   deathbunnycount = 0;
   mp = [0, 0];
-  quux = 0;
+  frameInterval = null;
   up = false;
   down = false;
   left = false;
@@ -129,11 +129,11 @@
       return dogpos = plus(pos, [r / 2, 0]);
     });
     doggoal = pos;
-    return quux = setInterval((function() {
+    return frameInterval = setInterval((function() {
       try {
         return step();
       } catch (err) {
-        clearInterval(quux);
+        clearInterval(frameInterval);
         throw err;
       }
     }), 40);
@@ -189,13 +189,6 @@
     translate(ctx, minus([500, 250], pos));
     drawImage(ctx, grasscanvas, [0, 0]);
     ctx.strokeStyle = '#000000';
-    /*
-      ctx.beginPath()
-      moveTo ctx, dogpos
-      for p in dogpath
-        lineTo ctx, p
-      ctx.stroke()
-      */
     for (_i = 0, _len = deathbunnies.length; _i < _len; _i++) {
       p = deathbunnies[_i].p;
       drawImage(ctx, deathbrownbunny, minus(p, [20, 20]));
@@ -478,16 +471,16 @@
     newzombies = new parray(5000, 500);
     zombies.each(function(zombie) {
       if (zombie.sleep < 1) {
-        zombie.p = walk(zombie.p, pos, 4);
-        zombies.eachin(minus(zombie.p, [100, 100]), [200, 200], function(other) {
+        zombie.p = walk(zombie.p, pos, 4 - zombie.sleep);
+        zombies.eachin(minus(zombie.p, [50, 50]), [100, 100], function(other) {
           var _ref;
-          if (other.sleep < 1 && (0 < (_ref = distance(other.p, zombie.p)) && _ref < 100)) {
+          if (other.sleep < 1 && (0 < (_ref = distance(other.p, zombie.p)) && _ref < 50)) {
             return zombie.sleep = 500;
           }
         });
         if ((distance(pos, zombie.p)) < 10) {
           pr("You die! but you got " + deathbunnycount + " bunnies!");
-          throw "You die!";
+          clearInterval(frameInterval);
         }
       } else {
         zombie.sleep--;
