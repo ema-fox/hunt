@@ -1,3 +1,12 @@
+###
+Copyright (c) 2011 Emanuel Rylke
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+###
 @zip = (xs...) -> 
    len = Math.min (x.length for x in xs)...
    (x[i] for x in xs) for i in [0...len]
@@ -24,11 +33,11 @@
     for i in [0..(xs.length - 2)]
       f xs[i], xs[i + 1]
 
-"""
+###
 these are cute but slow
 @plus  = (xs...) -> reduce ((a, b) -> a + b), 0, x for x in zip xs...
 @minus = (xs...) -> reduce ((a, b) -> a - b), y, ys for [y, ys...] in zip xs...
-"""
+###
 
 @tau = Math.PI * 2
 
@@ -72,10 +81,7 @@ these are cute but slow
   mod (asincos direction p, point) + sign * (Math.acos r / (distance p, point)), tau
 
 @cctangent = (c1, c2, sign) ->
-  #if (c1.r > c2.r)
-  #  cctangent c2, c1, -1 * sign
-  #else
-    pctangent c1.p, {r: c2.r - c1.r, p: c2.p}, sign
+  pctangent c1.p, {r: c2.r - c1.r, p: c2.p}, sign
 
 @convertline = (p1, p2) ->
   a = minus p2, p1
@@ -245,70 +251,6 @@ class @parray
     @each ->
       res++
     res
-
-# @p = posotion, @s = half the size
-class @qleaf
-  constructor: (@p, @s, @e) ->
-
-  add: (e2) -> 
-    if e2.p[0] == @e.p[0] && e2.p[1] == @e.p[1]
-      pr @e, e2, "the stack explodes in ten seconds"
-    new w.qtree @p, @s, [@e, e2]
-
-  near: (p) -> @e
-
-  each: (f) -> f @e
-
-  nears: (p, s) -> @e
-
-class @qtree
-  constructor: (@p, @s, es) ->
-    @es = [[null, null], [null, null]]
-    for e in es
-      @add e
-
-  address: ([p0, p1]) ->
-    [(if p0 < @p[0] + @s then 0 else 1), if p1 < @p[1] + @s then 0 else 1]
-
-  add: (e) ->
-    [x, y] = @address e.p
-    if @es[x][y]
-      @es[x][y] = @es[x][y].add e
-    else
-      @es[x][y] = new w.qleaf (w.plus @p, (w.mult [x, y], @s)), @s / 2, e
-    @
-
-  near: (p) ->
-    [x, y] = @address p
-    if @es[x][y]
-      return @es[x][y].near p
-    else
-      for x in [0..1]
-        for y in [0..1]
-          if @es[x][y]
-            return @es[x][y].near p
-
-  each: (f) ->
-    for x in [0..1]
-      for y in [0..1]
-        if @es[x][y]
-          @es[x][y].each f
-
-  nears: (p, s) ->
-    if s > @s
-      res = []
-      @each (e) -> res.push e
-      return res
-    else
-      [x, y] = @address p
-      if @es[x][y]
-        return @es[x][y].nears p, s
-      else
-        return []
-
-
-
-#some unreleated stuff:
 
 @ptrue = (a) -> Math.random() < a
 

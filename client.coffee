@@ -1,3 +1,12 @@
+###
+Copyright (c) 2011 Emanuel Rylke
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+###
 initStubs = []
 
 runStubs = (stubs) ->
@@ -125,8 +134,6 @@ initStubs.push ->
 drawBg = (name) ->
   bg = new Image()
   ($ bg).load ->
-    # the image is not loades in chrome at this point
-    console.debug name
     bgsize = bg.width
     for x in [0..(5000 / bgsize | 0)]
       ((x) ->
@@ -334,17 +341,20 @@ step = ->
     else if (distance dogpos, pos) > 250
       dogrun = true
   dogpos = walk dogpos, doggoal, dogspeed
+  newzombies = new parray 5000, 500
   zombies.each (zombie) ->
     if zombie.sleep < 1
       zombie.p = walk zombie.p, pos, 4
-      zombies.eachin (minus zombie.p, [40, 40]), [80, 80], (other) ->
-        if other != zombie && ptrue 0.01 && other.sleep < 1 #&& (distance other.p, zombie.p) < 40
+      zombies.eachin (minus zombie.p, [100, 100]), [200, 200], (other) ->
+        if other.sleep < 1 && 0 < (distance other.p, zombie.p) < 100
           zombie.sleep = 500
       if (distance pos, zombie.p) < 10
         pr "You die! but you got #{deathbunnycount} bunnies!"
         throw "You die!"
     else
       zombie.sleep--
+    newzombies.add zombie
+  zombies = newzombies
   newdeathbunnies = []
   for db in deathbunnies
     if (distance db.p, pos) < 50 
