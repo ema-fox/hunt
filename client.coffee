@@ -41,7 +41,7 @@ dogpath = []
 dogspeed = 0
 deathbunnycount = 0
 mp = [0, 0]
-quux = 0
+frameInterval = null
 
 up = false
 down = false
@@ -108,11 +108,11 @@ initStubs.push ->
     pos = p
     dogpos = plus pos, [r / 2, 0]
   doggoal = pos
-  quux = setInterval (->
+  frameInterval = setInterval (->
     try
       step()
     catch err
-      clearInterval quux
+      clearInterval frameInterval
       throw err
   ), 40
 
@@ -148,21 +148,12 @@ drawBg 'bg.png'
 drawBg 'bg2.png'
 
 draw = ->
-  #clearRect ctx, [0, 0], [500, 500]
   ctx.fillStyle = '#000000'
   fillRect ctx, [0, 0], [1000, 500]
   ctx.save()
   translate ctx, minus [500, 250], pos
   drawImage ctx, grasscanvas, [0, 0]
-  #drawImage ctx, rockcanvas, [0, 0]
   ctx.strokeStyle = '#000000'
-  ###
-  ctx.beginPath()
-  moveTo ctx, dogpos
-  for p in dogpath
-    lineTo ctx, p
-  ctx.stroke()
-  ###
   for {p} in deathbunnies
     drawImage ctx, deathbrownbunny, (minus p, [20, 20])
   flowers.eachin (minus pos, [500, 250]), [1000, 500], ({p}) ->
@@ -344,13 +335,13 @@ step = ->
   newzombies = new parray 5000, 500
   zombies.each (zombie) ->
     if zombie.sleep < 1
-      zombie.p = walk zombie.p, pos, 4
-      zombies.eachin (minus zombie.p, [100, 100]), [200, 200], (other) ->
-        if other.sleep < 1 && 0 < (distance other.p, zombie.p) < 100
+      zombie.p = walk zombie.p, pos, 4 - zombie.sleep
+      zombies.eachin (minus zombie.p, [50, 50]), [100, 100], (other) ->
+        if other.sleep < 1 && 0 < (distance other.p, zombie.p) < 50
           zombie.sleep = 500
       if (distance pos, zombie.p) < 10
         pr "You die! but you got #{deathbunnycount} bunnies!"
-        throw "You die!"
+        clearInterval frameInterval
     else
       zombie.sleep--
     newzombies.add zombie
