@@ -512,26 +512,40 @@
   ($(document)).keydown(function(evt) {
     switch (String.fromCharCode(evt.which)) {
       case 'A':
-        return left = true;
+        left = true;
+        break;
       case 'S':
-        return down = true;
+        down = true;
+        break;
       case 'W':
-        return up = true;
+        up = true;
+        break;
       case 'D':
-        return right = true;
+        right = true;
+        break;
+      default:
+        return;
     }
+    return evt.preventDefault();
   });
   ($(document)).keyup(function(evt) {
     switch (String.fromCharCode(evt.which)) {
       case 'A':
-        return left = false;
+        left = false;
+        break;
       case 'S':
-        return down = false;
+        down = false;
+        break;
       case 'W':
-        return up = false;
+        up = false;
+        break;
       case 'D':
-        return right = false;
+        right = false;
+        break;
+      default:
+        return;
     }
+    return evt.preventDefault();
   });
   shoot = function() {
     return arrows.push({
