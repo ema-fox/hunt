@@ -491,13 +491,12 @@
         zombie.life--;
       }
       if (zombie.sleep < 1) {
-        zombie.p = walk(zombie.p, pos, zombie.life);
-        zombies.eachin(minus(zombie.p, [50, 50]), [100, 100], function(other) {
-          var _ref;
-          if (other.sleep < 1 && (0 < (_ref = distance(other.p, zombie.p)) && _ref < 50)) {
-            return zombie.sleep = 500;
-          }
-        });
+        zombie.p = walk(zombie.p, pos, zombie.life / 2);
+        /*
+              zombies.eachin (minus zombie.p, [50, 50]), [100, 100], (other) ->
+                if other.sleep < 1 && 0 < (distance other.p, zombie.p) < 50
+                  zombie.sleep = 500
+              */
         if ((distance(pos, zombie.p)) < 10) {
           pr("You die! but you got " + deathbunnycount + " bunnies!");
           clearInterval(frameInterval);
