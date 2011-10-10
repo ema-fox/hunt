@@ -7,7 +7,7 @@
   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
   
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, getPatch, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, left, mp, patches, pathing, pos, randpos, right, rockcanvas, rockctx, runStubs, shoot, shootId, step, up, walk, zombies;
+  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, getPatch, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, lastShoot, left, mp, patches, pathing, pos, randpos, right, rockcanvas, rockctx, runStubs, shoot, shooting, step, up, walk, zombies;
   var __slice = Array.prototype.slice;
   initStubs = [];
   runStubs = function(stubs) {
@@ -56,6 +56,8 @@
   deathbunnycount = 0;
   mp = [0, 0];
   frameInterval = null;
+  lastShoot = (new Date()).getTime();
+  shooting = false;
   up = false;
   down = false;
   left = false;
@@ -329,14 +331,20 @@
     return plus(start, mult(direction(start, path[0]), speed));
   };
   step = function() {
-    var a, db, db2, dist, goal, newarrows, newbunnies, newdeathbunnies, newflowers, newzombies, _i, _j, _k, _len, _len2, _len3;
+    var a, db, db2, dist, foo, goal, newarrows, newbunnies, newdeathbunnies, newflowers, newzombies, patch, _i, _j, _k, _len, _len2, _len3;
     goal = [pos[0] + (right ? 1 : 0) - (left ? 1 : 0), pos[1] + (down ? 1 : 0) - (up ? 1 : 0)];
     goal = plus(pos, mult(direction(pos, goal), 6));
+    foo = true;
     patches.eachin(goal, [0, 0], function(patch) {
-      if ((distance(patch.p, goal)) < patch.r) {
-        return pos = goal;
+      if ((distance(patch.p, goal)) < patch.r - 1) {
+        pos = goal;
+        return foo = false;
       }
     });
+    if (foo) {
+      patch = getPatch(pos);
+      pos = plus(patch.p, mult(direction(patch.p, goal), patch.r - 1));
+    }
     if (bunnies.length() < 5) {
       bunnies.add({
         p: randpos(),
@@ -356,6 +364,9 @@
         sleep: 100,
         life: 10
       });
+    }
+    if (shooting) {
+      shoot();
     }
     newarrows = [];
     for (_i = 0, _len = arrows.length; _i < _len; _i++) {
@@ -559,13 +570,15 @@
     return evt.preventDefault();
   });
   shoot = function() {
-    return arrows.push({
-      h: 30,
-      p: pos,
-      m: mult(direction(pos, plus(mp, minus(pos, [500, 250]))), 20)
-    });
+    if ((new Date()).getTime() - 160 > lastShoot) {
+      arrows.push({
+        h: 30,
+        p: pos,
+        m: mult(direction(pos, plus(mp, minus(pos, [500, 250]))), 20)
+      });
+      return lastShoot = (new Date()).getTime();
+    }
   };
-  shootId = false;
   $(function() {
     var cnvs;
     runStubs(initStubs);
@@ -578,12 +591,12 @@
       return shoot();
     });
     ($('canvas')).mousedown(function() {
-      shoot;      clearInterval(shootId);
-      shootId = setInterval(shoot, 320);
+      shoot();
+      shooting = true;
       return true;
     });
     return ($('canvas')).mouseup(function() {
-      clearInterval(shootId);
+      shooting = false;
       return true;
     });
   });
