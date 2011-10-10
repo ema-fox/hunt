@@ -163,7 +163,6 @@
     bg = new Image();
     ($(bg)).load(function() {
       var bgsize, x, _fn, _ref;
-      console.log(bg.complete);
       bgsize = bg.width;
       _fn = function(x) {
         return initStubs.push(function() {
@@ -182,8 +181,7 @@
         return drawImage(grassctx, rockcanvas, [0, 0]);
       });
     });
-    bg.src = name;
-    return console.log(bg.complete);
+    return bg.src = name;
   };
   drawBg('bg.png');
   drawBg('bg2.png');
@@ -213,8 +211,9 @@
     }
     drawImage(ctx, hunter, minus(pos, [20, 20]));
     zombies.each(function(_arg) {
-      p = _arg.p;
-      return fillRect(ctx, minus(p, [20, 20]), [40, 40]);
+      var life, p;
+      p = _arg.p, life = _arg.life;
+      return fillRect(ctx, minus(p, [20, 20]), [20 + life * 2, 40]);
     });
     for (_j = 0, _len2 = arrows.length; _j < _len2; _j++) {
       _ref = arrows[_j], p = _ref.p, m = _ref.m;
@@ -351,10 +350,11 @@
         death: false
       });
     }
-    if (ptrue(0.001)) {
+    if (ptrue(0.01)) {
       zombies.add({
         p: randpos(),
-        sleep: 100
+        sleep: 100,
+        life: 10
       });
     }
     newarrows = [];
@@ -476,6 +476,9 @@
     dogpos = walk(dogpos, doggoal, dogspeed);
     newzombies = new parray(5000, 500);
     zombies.each(function(zombie) {
+      if (hitp(zombie)) {
+        zombie.life--;
+      }
       if (zombie.sleep < 1) {
         zombie.p = walk(zombie.p, pos, 4 - zombie.sleep);
         zombies.eachin(minus(zombie.p, [50, 50]), [100, 100], function(other) {
@@ -491,7 +494,9 @@
       } else {
         zombie.sleep--;
       }
-      return newzombies.add(zombie);
+      if (zombie.life > 0) {
+        return newzombies.add(zombie);
+      }
     });
     zombies = newzombies;
     newdeathbunnies = [];
