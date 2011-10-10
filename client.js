@@ -360,7 +360,7 @@
         death: false
       });
     }
-    if (ptrue(0.01)) {
+    if (ptrue(0.005)) {
       zombies.add({
         p: randpos(),
         sleep: 100,
