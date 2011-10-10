@@ -188,7 +188,7 @@
   drawBg('bg.png');
   drawBg('bg2.png');
   draw = function() {
-    var i, m, p, _i, _j, _k, _len, _len2, _len3, _ref, _results;
+    var m, p, _i, _j, _k, _len, _len2, _len3, _ref;
     ctx.fillStyle = '#000000';
     fillRect(ctx, [0, 0], [1000, 500]);
     ctx.save();
@@ -233,12 +233,14 @@
     }
     drawPs = [];
     ctx.restore();
-    _results = [];
-    for (i = 0; 0 <= deathbunnycount ? i < deathbunnycount : i > deathbunnycount; 0 <= deathbunnycount ? i++ : i--) {
-      p = plus([30, 30], [i ^ (i * 31.31) % 50, i ^ (i * 42.42) % 50]);
-      _results.push(drawImage(ctx, deathbrownbunny, p));
-    }
-    return _results;
+    drawImage(ctx, deathbrownbunny, [20, 20]);
+    ctx.font = '40px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillText("" + deathbunnycount, 72, 47);
+    ctx.fillText("" + deathbunnycount, 71, 46);
+    ctx.fillStyle = '#ffddaa';
+    return ctx.fillText("" + deathbunnycount, 70, 45);
   };
   hitp = function(bunny) {
     var a, _i, _len;
