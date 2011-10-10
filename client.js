@@ -491,7 +491,7 @@
         zombie.life--;
       }
       if (zombie.sleep < 1) {
-        zombie.p = walk(zombie.p, pos, 4 - zombie.sleep);
+        zombie.p = walk(zombie.p, pos, zombie.life);
         zombies.eachin(minus(zombie.p, [50, 50]), [100, 100], function(other) {
           var _ref;
           if (other.sleep < 1 && (0 < (_ref = distance(other.p, zombie.p)) && _ref < 50)) {
