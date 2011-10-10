@@ -7,7 +7,7 @@
   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
   
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, getPatch, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, lastShoot, left, mp, patches, pathing, pos, randpos, right, rockcanvas, rockctx, runStubs, shoot, shooting, step, up, walk, zombies;
+  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, getPatch, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, lastShoot, left, mp, patches, pathing, pause, pos, randpos, right, rockcanvas, rockctx, runGame, runStubs, shoot, shooting, step, up, walk, zombies;
   var __slice = Array.prototype.slice;
   initStubs = [];
   runStubs = function(stubs) {
@@ -58,6 +58,7 @@
   frameInterval = null;
   lastShoot = (new Date()).getTime();
   shooting = false;
+  pause = false;
   up = false;
   down = false;
   left = false;
@@ -127,14 +128,7 @@
       });
     });
   });
-  initStubs.push(function() {
-    patches.each(function(_arg) {
-      var p, r;
-      p = _arg.p, r = _arg.r;
-      pos = p;
-      return dogpos = plus(pos, [r / 2, 0]);
-    });
-    doggoal = pos;
+  runGame = function() {
     return frameInterval = setInterval((function() {
       try {
         return step();
@@ -143,6 +137,16 @@
         throw err;
       }
     }), 40);
+  };
+  initStubs.push(function() {
+    patches.each(function(_arg) {
+      var p, r;
+      p = _arg.p, r = _arg.r;
+      pos = p;
+      return dogpos = plus(pos, [r / 2, 0]);
+    });
+    doggoal = pos;
+    return runGame();
   });
   grasscanvas = ($('<canvas width="5000" height="5000">'))[0];
   grassctx = grasscanvas.getContext('2d');
@@ -188,7 +192,7 @@
   drawBg('bg.png');
   drawBg('bg2.png');
   draw = function() {
-    var m, p, _i, _j, _k, _len, _len2, _len3, _ref;
+    var i, m, p, _i, _j, _k, _len, _len2, _len3, _ref;
     ctx.fillStyle = '#000000';
     fillRect(ctx, [0, 0], [1000, 500]);
     ctx.save();
@@ -233,7 +237,10 @@
     }
     drawPs = [];
     ctx.restore();
-    drawImage(ctx, deathbrownbunny, [20, 20]);
+    for (i = 0; 0 <= deathbunnycount ? i < deathbunnycount : i > deathbunnycount; 0 <= deathbunnycount ? i++ : i--) {
+      p = plus([30, 30], [i ^ (i * 31.31) % 50, i ^ (i * 42.42) % 50]);
+      drawImage(ctx, deathbrownbunny, p);
+    }
     ctx.font = '40px sans-serif';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
@@ -360,7 +367,7 @@
         death: false
       });
     }
-    if (ptrue(0.005)) {
+    if (ptrue(0.0075)) {
       zombies.add({
         p: randpos(),
         sleep: 100,
@@ -546,6 +553,19 @@
       case 'D':
         right = true;
         break;
+      case 'P':
+        if (pause) {
+          pause = false;
+          runGame();
+        } else {
+          pause = true;
+          clearInterval(frameInterval);
+          ctx.fillStyle = 'rgba(128,128,128,0.3)';
+          fillRect(ctx, [0, 0], [1000, 500]);
+          ctx.fillStyle = '#000000';
+          ctx.fillText("Press P to continue playing.", 200, 250);
+        }
+        break;
       default:
         return;
     }
@@ -571,7 +591,7 @@
     return evt.preventDefault();
   });
   shoot = function() {
-    if ((new Date()).getTime() - 160 > lastShoot) {
+    if ((new Date()).getTime() - 160 > lastShoot && !pause) {
       arrows.push({
         h: 30,
         p: pos,
