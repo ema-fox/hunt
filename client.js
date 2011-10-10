@@ -7,7 +7,7 @@
   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
   
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, left, mp, patches, pathing, pos, randpos, right, rockcanvas, rockctx, runStubs, shoot, shootId, step, up, walk, zombies;
+  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, getPatch, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, left, mp, patches, pathing, pos, randpos, right, rockcanvas, rockctx, runStubs, shoot, shootId, step, up, walk, zombies;
   var __slice = Array.prototype.slice;
   initStubs = [];
   runStubs = function(stubs) {
@@ -247,20 +247,20 @@
   intersect = function(patch1, patch2) {
     return plus(patch1.p, mult(direction(patch1.p, patch2.p), patch1.r));
   };
+  getPatch = function(p) {
+    var res;
+    res = false;
+    patches.eachin(p, [0, 0], function(patch) {
+      if ((distance(p, patch.p)) < patch.r) {
+        return res = patch;
+      }
+    });
+    return res;
+  };
   pathing = function(p1, p2) {
     var bar, bla, closed, j, n, newpath, open, p1patch, p2patch, pth, _i, _len, _ref, _ref2, _results;
-    p1patch = false;
-    patches.eachin(p1, [0, 0], function(patch) {
-      if ((distance(p1, patch.p)) < patch.r) {
-        return p1patch = patch;
-      }
-    });
-    p2patch = false;
-    patches.eachin(p2, [0, 0], function(patch) {
-      if ((distance(p2, patch.p)) < patch.r) {
-        return p2patch = patch;
-      }
-    });
+    p1patch = getPatch(p1);
+    p2patch = getPatch(p2);
     if (!p2patch) {
       return [p1];
     } else if (p2patch === p1patch || !p1patch) {
