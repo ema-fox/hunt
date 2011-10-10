@@ -16,6 +16,10 @@
       return setTimeout((function() {
         return runStubs(stubs);
       }), 1);
+    } else {
+      return setTimeout((function() {
+        return runStubs(stubs);
+      }), 300);
     }
   };
   arrows = [];
@@ -159,6 +163,7 @@
     bg = new Image();
     ($(bg)).load(function() {
       var bgsize, x, _fn, _ref;
+      console.log(bg.complete);
       bgsize = bg.width;
       _fn = function(x) {
         return initStubs.push(function() {
@@ -177,7 +182,8 @@
         return drawImage(grassctx, rockcanvas, [0, 0]);
       });
     });
-    return bg.src = name;
+    bg.src = name;
+    return console.log(bg.complete);
   };
   drawBg('bg.png');
   drawBg('bg2.png');
