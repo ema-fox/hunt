@@ -13,6 +13,10 @@ runStubs = (stubs) ->
   if stubs.length > 0
     stubs.shift()()
     setTimeout (-> runStubs stubs), 1
+  #maybe i should have a better solution for when stubs are added after all are processed
+  else
+    setTimeout (-> runStubs stubs), 300
+
 
 arrows = []
 bunnies = new parray 5000, 500
@@ -42,6 +46,8 @@ dogspeed = 0
 deathbunnycount = 0
 mp = [0, 0]
 frameInterval = null
+lastShoot = (new Date()).getTime()
+shooting = false
 
 up = false
 down = false
@@ -164,8 +170,8 @@ draw = ->
   if doghasbunny
     drawImage ctx, deathbrownbunny, (minus dogpos, [10, 10])
   drawImage ctx, hunter, (minus pos, [20, 20])
-  zombies.each ({p}) ->
-    fillRect ctx, (minus p, [20, 20]), [40, 40]
+  zombies.each ({p, life}) ->
+    fillRect ctx, (minus p, [20, 20]), [20 + life * 2, 40]
   for {p, m} in arrows
     ctx.beginPath()
     moveTo ctx, p
@@ -192,16 +198,17 @@ hitp = (bunny) ->
 intersect = (patch1, patch2) ->
   plus patch1.p, (mult (direction patch1.p, patch2.p), patch1.r)
 
+getPatch = (p) ->
+  res = false
+  patches.eachin p, [0, 0], (patch) ->
+    if (distance p, patch.p) < patch.r
+      res = patch
+  return res
+
 #I wish you luck understanding this function and i'm sorry that i didn't document it
 pathing = (p1, p2) ->
-  p1patch = false
-  patches.eachin p1, [0, 0], (patch) ->
-    if (distance p1, patch.p) < patch.r
-      p1patch = patch
-  p2patch = false
-  patches.eachin p2, [0, 0], (patch) ->
-    if (distance p2, patch.p) < patch.r
-      p2patch = patch
+  p1patch = getPatch p1
+  p2patch = getPatch p2
   if not p2patch
     return [p1]
   else if p2patch == p1patch || not p1patch
@@ -243,12 +250,19 @@ walk = (start, goal, speed) ->
 step = ->
   goal = [pos[0] + (if right then 1 else 0) - (if left then 1 else 0), pos[1] + (if down then 1 else 0) - (if up then 1 else 0)]
   goal = plus pos, (mult (direction pos, goal), 6)
+  foo = true
   patches.eachin goal, [0, 0], (patch) ->
-    if (distance patch.p, goal) < patch.r
+    if (distance patch.p, goal) < patch.r - 1
       pos = goal
+      foo = false
+  if foo
+    patch = getPatch pos
+    pos = plus patch.p, (mult (direction patch.p, goal), patch.r - 1)
   bunnies.add {p: randpos(), alarmed: false, life: 100} if bunnies.length() < 5
   flowers.add {p: randpos(), death: false} if ptrue 0.5
-  zombies.add {p: randpos(), sleep: 100} if ptrue 0.001
+  zombies.add {p: randpos(), sleep: 100, life: 10} if ptrue 0.01
+  if shooting
+    shoot()
   newarrows = []
   for a in arrows
     a.p = plus a.p, a.m
@@ -275,6 +289,7 @@ step = ->
     if bunny.alarmed
       bunny.alarmed = dist < 600
       bunnyspeed = 10
+      #rewrite below to get an position that is alway reachable
       bunnygoal = plus bunny.p, mult (direction pos, bunny.p), 100
     else
       if bunny.life > 1000
@@ -334,17 +349,22 @@ step = ->
   dogpos = walk dogpos, doggoal, dogspeed
   newzombies = new parray 5000, 500
   zombies.each (zombie) ->
+    if hitp zombie
+      zombie.life--
     if zombie.sleep < 1
-      zombie.p = walk zombie.p, pos, 4 - zombie.sleep
+      zombie.p = walk zombie.p, pos, zombie.life / 2
+      ###
       zombies.eachin (minus zombie.p, [50, 50]), [100, 100], (other) ->
         if other.sleep < 1 && 0 < (distance other.p, zombie.p) < 50
           zombie.sleep = 500
+      ###
       if (distance pos, zombie.p) < 10
         pr "You die! but you got #{deathbunnycount} bunnies!"
         clearInterval frameInterval
     else
       zombie.sleep--
-    newzombies.add zombie
+    if zombie.life > 0
+      newzombies.add zombie
   zombies = newzombies
   newdeathbunnies = []
   for db in deathbunnies
@@ -372,6 +392,9 @@ step = ->
       up = true
     when 'D'
       right = true
+    else
+      return
+  evt.preventDefault()
 
 ($ document).keyup (evt) ->
   switch String.fromCharCode evt.which
@@ -383,11 +406,14 @@ step = ->
       up = false
     when 'D'
       right = false
+    else
+      return
+  evt.preventDefault()
       
 shoot = ->
-  arrows.push {h: 30, p: pos, m: mult (direction pos, (plus mp, (minus pos, [500, 250]))), 20}
-
-shootId = false
+  if (new Date()).getTime() - 160 > lastShoot
+    arrows.push {h: 30, p: pos, m: mult (direction pos, (plus mp, (minus pos, [500, 250]))), 20}
+    lastShoot = (new Date()).getTime()
 
 $ ->
   runStubs initStubs
@@ -398,12 +424,10 @@ $ ->
   ($ 'canvas').click ->
     shoot()
   ($ 'canvas').mousedown ->
-    shoot
-    #maybe a previous mouseup wasn't recorded because the courser was in a sepperate window or something
-    clearInterval shootId
-    shootId = setInterval shoot, 320
+    shoot()
+    shooting = true
     true
   ($ 'canvas').mouseup ->
-    clearInterval shootId
+    shooting = false
     true
 
