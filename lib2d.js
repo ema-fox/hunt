@@ -246,6 +246,13 @@
     d = Math.abs((mod(a1, tau)) - (mod(a2, tau)));
     return Math.min(d, tau - d);
   };
+  this.add = function(p1, _arg) {
+    var b0, b1;
+    b0 = _arg[0], b1 = _arg[1];
+    p1[0] += b0;
+    p1[1] += b1;
+    return p1;
+  };
   this.ac = function(array, _arg) {
     var col, p0, p1;
     p0 = _arg[0], p1 = _arg[1];
