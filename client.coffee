@@ -46,8 +46,13 @@ dogspeed = 0
 deathbunnycount = 0
 mp = [0, 0]
 frameInterval = null
-lastShoot = (new Date()).getTime()
+getTime = -> (new Date()).getTime()
+lastShoot = getTime()
+lastZombieWave = getTime()
+lastZombieWaveOffset = 0
+zombieWaveSize = 1
 shooting = false
+pause = false
 
 up = false
 down = false
@@ -61,6 +66,7 @@ deathbrownbunny = loadImg 'deathbrownbunny.png'
 dog = loadImg 'dog.png'
 flower = loadImg 'flower.png'
 hunter = loadImg 'hunter.png'
+zombie = loadImg 'zombie.png'
 
 #control flow of doom !
 #also needs to be optimized
@@ -95,25 +101,15 @@ initStubs.push ->
           flpatch.p[0]--
       else
         flpatch.p[1] += Math.max 1, mindist
-###
-initStubs.push ->
-  i = 0
-  while i < patches.length
-    patches.slice i, 1
-    i += 4
-###
+  null
+
 initStubs.push ->
   patches.each (patch) ->
     patches.eachin (minus patch.p, [patch.r, patch.r]), [patch.r * 2, patch.r * 2], (other) ->
       if patch != other && (distance patch.p, other.p) < patch.r + other.r
         patch.n.push other
 
-initStubs.push ->
-  #this is stupid and slow but i'm to lazy to fix it now
-  patches.each ({p, r}) ->
-    pos = p
-    dogpos = plus pos, [r / 2, 0]
-  doggoal = pos
+runGame = ->
   frameInterval = setInterval (->
     try
       step()
@@ -121,6 +117,14 @@ initStubs.push ->
       clearInterval frameInterval
       throw err
   ), 40
+
+initStubs.push ->
+  #this is stupid and slow but i'm to lazy to fix it now
+  patches.each ({p, r}) ->
+    pos = p
+    dogpos = plus pos, [r / 2, 0]
+  doggoal = pos
+  runGame()
 
 grasscanvas = ($ '<canvas width="5000" height="5000">')[0]
 grassctx = grasscanvas.getContext '2d'
@@ -145,7 +149,8 @@ drawBg = (name) ->
       ((x) ->
         initStubs.push ->
           for y in [0..(5000 / bgsize | 0)]
-            grassctx.drawImage bg, x*bgsize, y*bgsize)(x)
+            grassctx.drawImage bg, x*bgsize, y*bgsize
+          null)(x)
     initStubs.push ->
       drawImage grassctx, rockcanvas, [0, 0]
   bg.src = name
@@ -170,8 +175,8 @@ draw = ->
   if doghasbunny
     drawImage ctx, deathbrownbunny, (minus dogpos, [10, 10])
   drawImage ctx, hunter, (minus pos, [20, 20])
-  zombies.each ({p, life}) ->
-    fillRect ctx, (minus p, [20, 20]), [20 + life * 2, 40]
+  zombies.eachin (minus pos, [500, 250]), [1000, 500], ({p}) ->
+    drawImage ctx, zombie, (minus p, [20, 20])
   for {p, m} in arrows
     ctx.beginPath()
     moveTo ctx, p
@@ -184,13 +189,23 @@ draw = ->
     fillRect ctx, p, [10, 10]
   drawPs = []
   ctx.restore()
+  #put this in own canvas:
   for i in [0...deathbunnycount]
     p = plus [30, 30], [i ^ (i * 31.31) % 50, i ^ (i * 42.42) % 50]
     drawImage ctx, deathbrownbunny, p
+  #drawImage ctx, deathbrownbunny, [20, 20]
+  ctx.font = '40px sans-serif'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'
+  ctx.fillText "#{deathbunnycount}", 72, 47
+  ctx.fillText "#{deathbunnycount}", 71, 46
+  ctx.fillStyle = '#ffddaa'
+  ctx.fillText "#{deathbunnycount}", 70, 45
 
+#reverse hitp checking
 hitp = (bunny) ->
   for a in arrows
-    if contains (plus a.p, a.m), (minus bunny.p, [20, 20]), (plus bunny.p, [20, 20])
+    if contains a.p, (minus bunny.p, [20, 20]), (plus bunny.p, [20, 20])
       a.p = [-100, -100]
       return true
   false
@@ -242,6 +257,7 @@ pathing = (p1, p2) ->
               break
           if bla
             open.push newpath
+  throw "the controlflow should never go here"
 
 walk = (start, goal, speed) ->
   path = pathing start, goal
@@ -260,13 +276,22 @@ step = ->
     pos = plus patch.p, (mult (direction patch.p, goal), patch.r - 1)
   bunnies.add {p: randpos(), alarmed: false, life: 100} if bunnies.length() < 5
   flowers.add {p: randpos(), death: false} if ptrue 0.5
-  zombies.add {p: randpos(), sleep: 100, life: 10} if ptrue 0.01
+  if getTime() - 60 * 1000 > lastZombieWave
+    for i in [0...zombieWaveSize]
+      zombies.add {p: randpos(), sleep: 100, life: 10, subgoal: [0, 0], subgoalcounter: 0}
+    zombieWaveSize++
+    lastZombieWave = getTime()
   if shooting
     shoot()
   newarrows = []
   for a in arrows
     a.p = plus a.p, a.m
-    if a.h > 1
+    foo = true
+    zombies.eachin (minus a.p, [20, 20]), [40, 40], (zombie) ->
+      if (distance a.p, zombie.p) < 20 && foo
+        zombie.life--
+        foo = false
+    if a.h > 1 && foo
       a.h -= 1
       newarrows.push a
   arrows = newarrows
@@ -317,8 +342,7 @@ step = ->
         if (distance f.p, bunny.p) < 20
           bunny.life += 50
           f.death = true
-    bunnypath = pathing bunny.p, bunnygoal
-    bunny.p = plus bunny.p, mult (direction bunny.p, bunnypath[0]), bunnyspeed
+    bunny.p = walk bunny.p, bunnygoal, bunnyspeed
     newbunnies.add bunny
   bunnies = newbunnies
   doggoal = dogpos
@@ -349,15 +373,19 @@ step = ->
   dogpos = walk dogpos, doggoal, dogspeed
   newzombies = new parray 5000, 500
   zombies.each (zombie) ->
-    if hitp zombie
-      zombie.life--
     if zombie.sleep < 1
-      zombie.p = walk zombie.p, pos, zombie.life / 2
-      ###
-      zombies.eachin (minus zombie.p, [50, 50]), [100, 100], (other) ->
-        if other.sleep < 1 && 0 < (distance other.p, zombie.p) < 50
-          zombie.sleep = 500
-      ###
+      if zombie.subgoalcounter < 1 || (distance zombie.subgoal, zombie.p) < zombie.life / 2 || (distance zombie.p, pos) < 200
+        zombie.subgoal = (pathing zombie.p, pos)[0]
+        zombie.subgoalcounter = 200
+      zombie.subgoalcounter--
+      zombie.p = plus zombie.p, (mult (direction zombie.p, zombie.subgoal), zombie.life / 2)
+      zombies.eachin (minus zombie.p, [40, 40]), [80, 80], (other) ->
+        if other != zombie && (distance zombie.p, other.p) < 40 
+          if other.sleep < 5
+            other.sleep += 10
+          if 10 > zombie.life > other.life > 0
+            other.life--
+            zombie.life++
       if (distance pos, zombie.p) < 10
         pr "You die! but you got #{deathbunnycount} bunnies!"
         clearInterval frameInterval
@@ -392,6 +420,19 @@ step = ->
       up = true
     when 'D'
       right = true
+    when 'P'
+      if pause
+        pause = false
+        lastZombieWave = getTime() - lastZombieWaveOffset
+        runGame()
+      else
+        pause = true
+        clearInterval frameInterval
+        lastZombieWaveOffset = getTime() - lastZombieWave
+        ctx.fillStyle = 'rgba(128,128,128,0.3)'
+        fillRect ctx, [0, 0], [1000, 500]
+        ctx.fillStyle = '#000000'
+        ctx.fillText "Press P to continue playing.", 200, 250
     else
       return
   evt.preventDefault()
@@ -411,7 +452,7 @@ step = ->
   evt.preventDefault()
       
 shoot = ->
-  if (new Date()).getTime() - 160 > lastShoot
+  if (new Date()).getTime() - 160 > lastShoot && !pause
     arrows.push {h: 30, p: pos, m: mult (direction pos, (plus mp, (minus pos, [500, 250]))), 20}
     lastShoot = (new Date()).getTime()
 

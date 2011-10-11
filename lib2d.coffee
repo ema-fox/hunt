@@ -127,6 +127,11 @@ these are cute but slow
   d = Math.abs (mod a1, tau) - (mod a2, tau)
   return Math.min d, tau - d
 
+@add = (p1, [b0, b1]) -> 
+  p1[0] += b0
+  p1[1] += b1
+  p1
+
 @ac = (array, [p0, p1]) -> 
   col = array[p0]
   if col?
