@@ -443,14 +443,17 @@
       }
       return res;
     };
+    parray.prototype.sanitize = function(x) {
+      return Math.max(Math.min(x, this.es.length - 1), 0);
+    };
     parray.prototype.eachin = function(_arg, _arg2, f) {
       var e, p0, p1, s0, s1, x, x1, x2, y, y1, y2, _i, _len, _ref;
       p0 = _arg[0], p1 = _arg[1];
       s0 = _arg2[0], s1 = _arg2[1];
-      x1 = Math.max(p0 / this.ts | 0, 0);
-      y1 = Math.max(p1 / this.ts | 0, 0);
-      x2 = Math.min((p0 + s0) / this.ts | 0, this.es.length - 1);
-      y2 = Math.min((p1 + s1) / this.ts | 0, this.es.length - 1);
+      x1 = this.sanitize(p0 / this.ts | 0);
+      y1 = this.sanitize(p1 / this.ts | 0);
+      x2 = this.sanitize((p0 + s0) / this.ts | 0);
+      y2 = this.sanitize((p1 + s1) / this.ts | 0);
       for (x = x1; x1 <= x2 ? x <= x2 : x >= x2; x1 <= x2 ? x++ : x--) {
         for (y = y1; y1 <= y2 ? y <= y2 : y >= y2; y1 <= y2 ? y++ : y--) {
           _ref = this.es[x][y];
