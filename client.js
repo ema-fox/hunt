@@ -7,7 +7,7 @@
   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
   
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, getPatch, getTime, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, lastShoot, lastZombieWave, lastZombieWaveOffset, left, mp, patches, pathing, pause, pos, randpos, right, rockcanvas, rockctx, runGame, runStubs, shoot, shooting, step, up, walk, zombie, zombieWaveSize, zombies;
+  */  var arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, frameTimer, getPatch, getTime, grasscanvas, grassctx, hitp, hunter, initStubs, intersect, lastShoot, lastZombieWave, lastZombieWaveOffset, left, mp, nigth, patches, pathing, pause, pos, randpos, right, rockcanvas, rockctx, runGame, runStubs, shoot, shooting, step, up, walk, zombie, zombieWaveSize, zombies;
   var __slice = Array.prototype.slice;
   initStubs = [];
   runStubs = function(stubs) {
@@ -59,7 +59,9 @@
   getTime = function() {
     return (new Date()).getTime();
   };
-  lastShoot = getTime();
+  frameTimer = 0;
+  lastShoot = 0;
+  nigth = null;
   lastZombieWave = getTime();
   lastZombieWaveOffset = 0;
   zombieWaveSize = 1;
@@ -78,9 +80,9 @@
   zombie = loadImg('zombie.png');
   initStubs.push(function() {
     var flpatch, foo, mindist, obst;
-    while (patches.length() < 100) {
+    while (patches.length() < 50) {
       flpatch = {
-        r: 40 + Math.random() * 200,
+        r: 40 + Math.random() * 400,
         n: []
       };
       flpatch.p = [flpatch.r + Math.random() * (5000 - flpatch.r * 2), "foo"];
@@ -195,7 +197,7 @@
   drawBg('bg2.png');
   draw = function() {
     var i, m, p, _i, _j, _k, _len, _len2, _len3, _ref;
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = '#bbaaaa';
     fillRect(ctx, [0, 0], [1000, 500]);
     ctx.save();
     translate(ctx, minus([500, 250], pos));
@@ -230,16 +232,16 @@
       ctx.closePath();
       ctx.stroke();
     }
-    ctx.lineWidth = 400;
-    strokeRect(ctx, [-200, -200], [5400, 5400]);
     for (_k = 0, _len3 = drawPs.length; _k < _len3; _k++) {
       p = drawPs[_k];
       fillRect(ctx, p, [10, 10]);
     }
     drawPs = [];
     ctx.restore();
+    ctx.fillStyle = "rgba(0, 0, 0, " + nigth + ")";
+    fillRect(ctx, [0, 0], [1000, 500]);
     for (i = 0; 0 <= deathbunnycount ? i < deathbunnycount : i > deathbunnycount; 0 <= deathbunnycount ? i++ : i--) {
-      p = plus([30, 30], [i ^ (i * 31.31) % 50, i ^ (i * 42.42) % 50]);
+      p = plus([30, 30], [(i ^ (i * 31.31)) % 50, (i ^ (i * 42.42)) % 50]);
       drawImage(ctx, deathbrownbunny, p);
     }
     ctx.font = '40px sans-serif';
@@ -341,6 +343,8 @@
   };
   step = function() {
     var a, db, db2, dist, foo, goal, i, newarrows, newbunnies, newdeathbunnies, newflowers, newzombies, patch, _i, _j, _k, _len, _len2, _len3;
+    frameTimer++;
+    nigth = ((Math.sin(frameTimer / (25 * 60))) + 1) / 4;
     goal = [pos[0] + (right ? 1 : 0) - (left ? 1 : 0), pos[1] + (down ? 1 : 0) - (up ? 1 : 0)];
     goal = plus(pos, mult(direction(pos, goal), 6));
     foo = true;
@@ -508,6 +512,9 @@
     dogpos = walk(dogpos, doggoal, dogspeed);
     newzombies = new parray(5000, 500);
     zombies.each(function(zombie) {
+      if (nigth < 0.25) {
+        zombie.life -= 0.1;
+      }
       if (zombie.sleep < 1) {
         if (zombie.subgoalcounter < 1 || (distance(zombie.subgoal, zombie.p)) < zombie.life / 2 || (distance(zombie.p, pos)) < 200) {
           zombie.subgoal = (pathing(zombie.p, pos))[0];
@@ -614,13 +621,13 @@
     return evt.preventDefault();
   });
   shoot = function() {
-    if ((new Date()).getTime() - 160 > lastShoot && !pause) {
+    if (frameTimer - 4 > lastShoot && !pause) {
       arrows.push({
         h: 30,
         p: pos,
         m: mult(direction(pos, plus(mp, minus(pos, [500, 250]))), 20)
       });
-      return lastShoot = (new Date()).getTime();
+      return lastShoot = frameTimer;
     }
   };
   $(function() {
