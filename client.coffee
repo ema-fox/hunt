@@ -47,7 +47,9 @@ deathbunnycount = 0
 mp = [0, 0]
 frameInterval = null
 getTime = -> (new Date()).getTime()
-lastShoot = getTime()
+frameTimer = 0
+lastShoot = 0
+nigth = null
 lastZombieWave = getTime()
 lastZombieWaveOffset = 0
 zombieWaveSize = 1
@@ -71,8 +73,8 @@ zombie = loadImg 'zombie.png'
 #control flow of doom !
 #also needs to be optimized
 initStubs.push ->
-  while patches.length() < 100
-    flpatch = {r: 40 + Math.random() * 200, n: []}
+  while patches.length() < 50
+    flpatch = {r: 40 + Math.random() * 400, n: []}
     flpatch.p = [flpatch.r + Math.random() * (5000 - flpatch.r * 2), "foo"]
     flpatch.p[1] = 0 - flpatch.r
     loop
@@ -159,7 +161,7 @@ drawBg 'bg.png'
 drawBg 'bg2.png'
 
 draw = ->
-  ctx.fillStyle = '#000000'
+  ctx.fillStyle = '#bbaaaa'
   fillRect ctx, [0, 0], [1000, 500]
   ctx.save()
   translate ctx, minus [500, 250], pos
@@ -183,17 +185,18 @@ draw = ->
     lineTo ctx, plus p, m
     ctx.closePath()
     ctx.stroke()
-  ctx.lineWidth = 400
-  strokeRect ctx, [-200, -200], [5400, 5400]
   for p in drawPs
     fillRect ctx, p, [10, 10]
   drawPs = []
   ctx.restore()
+  ctx.fillStyle = "rgba(0, 0, 0, #{nigth})"
+  fillRect ctx, [0, 0], [1000, 500]
   #put this in own canvas:
   for i in [0...deathbunnycount]
-    p = plus [30, 30], [i ^ (i * 31.31) % 50, i ^ (i * 42.42) % 50]
+    p = plus [30, 30], [(i ^ (i * 31.31)) % 50, (i ^ (i * 42.42)) % 50]
     drawImage ctx, deathbrownbunny, p
   #drawImage ctx, deathbrownbunny, [20, 20]
+
   ctx.font = '40px sans-serif'
   ctx.textBaseline = 'middle'
   ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'
@@ -264,6 +267,8 @@ walk = (start, goal, speed) ->
   plus start, mult (direction start, path[0]), speed
 
 step = ->
+  frameTimer++
+  nigth = (((Math.sin frameTimer / (25 * 60)) + 1) / 4)
   goal = [pos[0] + (if right then 1 else 0) - (if left then 1 else 0), pos[1] + (if down then 1 else 0) - (if up then 1 else 0)]
   goal = plus pos, (mult (direction pos, goal), 6)
   foo = true
@@ -373,6 +378,8 @@ step = ->
   dogpos = walk dogpos, doggoal, dogspeed
   newzombies = new parray 5000, 500
   zombies.each (zombie) ->
+    if nigth < 0.25
+      zombie.life -= 0.1
     if zombie.sleep < 1
       if zombie.subgoalcounter < 1 || (distance zombie.subgoal, zombie.p) < zombie.life / 2 || (distance zombie.p, pos) < 200
         zombie.subgoal = (pathing zombie.p, pos)[0]
@@ -452,9 +459,9 @@ step = ->
   evt.preventDefault()
       
 shoot = ->
-  if (new Date()).getTime() - 160 > lastShoot && !pause
+  if frameTimer - 4 > lastShoot && !pause
     arrows.push {h: 30, p: pos, m: mult (direction pos, (plus mp, (minus pos, [500, 250]))), 20}
-    lastShoot = (new Date()).getTime()
+    lastShoot = frameTimer
 
 $ ->
   runStubs initStubs

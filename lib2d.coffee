@@ -233,11 +233,14 @@ class @parray
             res = res.concat(@es[x][y])
     res
 
+  sanitize: (x) -> Math.max (Math.min x, @es.length - 1), 0
+
   eachin: ([p0, p1], [s0, s1], f) ->
-    x1 = Math.max (p0 / @ts | 0), 0
-    y1 = Math.max (p1 / @ts | 0), 0
-    x2 = Math.min ((p0 + s0) / @ts | 0), @es.length - 1
-    y2 = Math.min ((p1 + s1) / @ts | 0), @es.length - 1
+    #bug
+    x1 = @sanitize (p0 / @ts | 0)
+    y1 = @sanitize (p1 / @ts | 0)
+    x2 = @sanitize ((p0 + s0) / @ts | 0)
+    y2 = @sanitize ((p1 + s1) / @ts | 0)
     for x in [x1..x2]
       for y in [y1..y2]
         for e in @es[x][y]
