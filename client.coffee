@@ -36,7 +36,8 @@ randpos = ->
     if foo
       return p
 
-pos = null
+hunter = null
+knuth = null
 dogpos = null
 doggoal = null
 doghasbunny = false
@@ -48,13 +49,13 @@ mp = [0, 0]
 frameInterval = null
 getTime = -> (new Date()).getTime()
 frameTimer = 0
-lastShoot = 0
 nigth = null
 lastZombieWave = getTime()
 lastZombieWaveOffset = 0
 zombieWaveSize = 1
 shooting = false
 pause = false
+guldencount = 0
 
 up = false
 down = false
@@ -67,7 +68,7 @@ brownbunny = loadImg 'brownbunny.png'
 deathbrownbunny = loadImg 'deathbrownbunny.png'
 dog = loadImg 'dog.png'
 flower = loadImg 'flower.png'
-hunter = loadImg 'hunter.png'
+hunterImg = loadImg 'hunter.png'
 zombie = loadImg 'zombie.png'
 
 #control flow of doom !
@@ -107,8 +108,8 @@ initStubs.push ->
 
 initStubs.push ->
   patches.each (patch) ->
-    patches.eachin (minus patch.p, [patch.r, patch.r]), [patch.r * 2, patch.r * 2], (other) ->
-      if patch != other && (distance patch.p, other.p) < patch.r + other.r
+    patches.eachinradius patch.p, patch.r, (other) ->
+      if patch != other
         patch.n.push other
 
 runGame = ->
@@ -122,10 +123,12 @@ runGame = ->
 
 initStubs.push ->
   #this is stupid and slow but i'm to lazy to fix it now
-  patches.each ({p, r}) ->
-    pos = p
-    dogpos = plus pos, [r / 2, 0]
-  doggoal = pos
+  {p, r} = patches.biggestinradius [4000, 4000], 2000, (x) -> -1 * (distance [4000, 4000], x.p)
+  hunter = new Shooter p
+  dogpos = plus p, [r / 2, 0]
+  doggoal = hunter.p
+  {p} = patches.biggestinradius [1000, 4000], 2000, (x) -> x.r / (1500 + (distance x.p, [1000, 4000]))
+  knuth = new Shooter p
   runGame()
 
 grasscanvas = ($ '<canvas width="5000" height="5000">')[0]
@@ -140,7 +143,7 @@ initStubs.push ->
     rockctx.beginPath()
     arc rockctx, p, r, 0, tau + 0.001
     rockctx.fill()
-  #rockctx.globalCompositeOperation = 'source-over'
+  #rockctx.globalComhunter.piteOperation = 'source-over'
 
 
 drawBg = (name) ->
@@ -164,20 +167,24 @@ draw = ->
   ctx.fillStyle = '#bbaaaa'
   fillRect ctx, [0, 0], [1000, 500]
   ctx.save()
-  translate ctx, minus [500, 250], pos
+  translate ctx, minus [500, 250], hunter.p
   drawImage ctx, grasscanvas, [0, 0]
   ctx.strokeStyle = '#000000'
   for {p} in deathbunnies
     drawImage ctx, deathbrownbunny, (minus p, [20, 20])
-  flowers.eachin (minus pos, [500, 250]), [1000, 500], ({p}) ->
+  flowers.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
     drawImage ctx, flower, (minus p, [10, 10])
-  bunnies.eachin (minus pos, [500, 250]), [1000, 500], ({p}) ->
+  bunnies.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
     drawImage ctx, brownbunny, (minus p, [20, 20])
   drawImage ctx, dog, (minus dogpos, [20, 20])
   if doghasbunny
     drawImage ctx, deathbrownbunny, (minus dogpos, [10, 10])
-  drawImage ctx, hunter, (minus pos, [20, 20])
-  zombies.eachin (minus pos, [500, 250]), [1000, 500], ({p}) ->
+  fillRect ctx, (minus knuth.p, [20, 20]), [40, 40]
+  drawImage ctx, hunterImg, (minus hunter.p, [20, 20])
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText "Knuth", knuth.p[0] - 40, knuth.p[1] - 40
+  ctx.strokeText "Knuth", knuth.p[0] - 40, knuth.p[1] - 40
+  zombies.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
     drawImage ctx, zombie, (minus p, [20, 20])
   for {p, m} in arrows
     ctx.beginPath()
@@ -199,11 +206,11 @@ draw = ->
 
   ctx.font = '40px sans-serif'
   ctx.textBaseline = 'middle'
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'
-  ctx.fillText "#{deathbunnycount}", 72, 47
-  ctx.fillText "#{deathbunnycount}", 71, 46
-  ctx.fillStyle = '#ffddaa'
+  ctx.fillStyle = '#ffffff'
   ctx.fillText "#{deathbunnycount}", 70, 45
+  ctx.strokeText "#{deathbunnycount}", 70, 45
+  ctx.fillText "#{guldencount}", 70, 95
+  ctx.strokeText "#{guldencount}", 70, 95
 
 #reverse hitp checking
 hitp = (bunny) ->
@@ -266,19 +273,30 @@ walk = (start, goal, speed) ->
   path = pathing start, goal
   plus start, mult (direction start, path[0]), speed
 
+class Shooter
+  constructor: (@p) ->
+    @target = null
+    @lastShoot = 0
+
+  behave: ->
+    if @target && frameTimer - 4 > @lastShoot
+      arrows.push {h: 30, p: @p, m: mult (direction @p, @target), 20}
+      @lastShoot = frameTimer
+
+
 step = ->
   frameTimer++
   nigth = (((Math.sin frameTimer / (25 * 60)) + 1) / 4)
-  goal = [pos[0] + (if right then 1 else 0) - (if left then 1 else 0), pos[1] + (if down then 1 else 0) - (if up then 1 else 0)]
-  goal = plus pos, (mult (direction pos, goal), 6)
+  goal = [hunter.p[0] + (if right then 1 else 0) - (if left then 1 else 0), hunter.p[1] + (if down then 1 else 0) - (if up then 1 else 0)]
+  goal = plus hunter.p, (mult (direction hunter.p, goal), 6)
   foo = true
   patches.eachin goal, [0, 0], (patch) ->
     if (distance patch.p, goal) < patch.r - 1
-      pos = goal
+      hunter.p = goal
       foo = false
   if foo
-    patch = getPatch pos
-    pos = plus patch.p, (mult (direction patch.p, goal), patch.r - 1)
+    patch = getPatch hunter.p
+    hunter.p = plus patch.p, (mult (direction patch.p, goal), patch.r - 1)
   bunnies.add {p: randpos(), alarmed: false, life: 100} if bunnies.length() < 5
   flowers.add {p: randpos(), death: false} if ptrue 0.5
   if getTime() - 60 * 1000 > lastZombieWave
@@ -286,17 +304,31 @@ step = ->
       zombies.add {p: randpos(), sleep: 100, life: 10, subgoal: [0, 0], subgoalcounter: 0}
     zombieWaveSize++
     lastZombieWave = getTime()
-  if shooting
-    shoot()
+  if hunter.target
+    hunter.target = (plus mp, (minus hunter.p, [500, 250]))
+  hunter.behave()
+  if (distance knuth.p, hunter.p) < 50 && deathbunnycount > 0 && ptrue 0.05
+    deathbunnycount--
+    guldencount++
+  knuth.target = null
+  zombies.eachinradius knuth.p, 400, (zombie) ->
+    knuth.target = zombie.p
+  knuth.behave()
   newarrows = []
   for a in arrows
-    a.p = plus a.p, a.m
+    goal = plus a.p, a.m
+    bar = false
+    patches.eachin goal, [0, 0], (patch) ->
+      if (distance patch.p, goal) < patch.r - 1
+        bar = true
+    if bar
+      a.p = goal
     foo = true
-    zombies.eachin (minus a.p, [20, 20]), [40, 40], (zombie) ->
-      if (distance a.p, zombie.p) < 20 && foo
+    zombies.eachinradius a.p, 20, (zombie) ->
+      if foo
         zombie.life--
         foo = false
-    if a.h > 1 && foo
+    if a.h > 1 && foo && bar
       a.h -= 1
       newarrows.push a
   arrows = newarrows
@@ -310,17 +342,15 @@ step = ->
     if bunny.life < 1
       return 
     bunny.life--
-    dist = distance pos, bunny.p
+    dist = distance hunter.p, bunny.p
     if dist < 150
-      bunnies.eachin (minus bunny.p, [150, 150]), [300, 300], (otherbunny) ->
-        dist2 = distance bunny.p, otherbunny.p
-        if dist2 < 150
-          otherbunny.alarmed = true
+      bunnies.eachinradius bunny.p, 150, (otherbunny) ->
+        otherbunny.alarmed = true
     if bunny.alarmed
       bunny.alarmed = dist < 600
       bunnyspeed = 10
-      #rewrite below to get an position that is alway reachable
-      bunnygoal = plus bunny.p, mult (direction pos, bunny.p), 100
+      #rewrite below to get an hunter.pition that is alway reachable
+      bunnygoal = plus bunny.p, mult (direction hunter.p, bunny.p), 100
     else
       if bunny.life > 1000
         bunny.life -= 200
@@ -332,7 +362,7 @@ step = ->
       f = {p: [99999,99999]}
       flowers.eachin (minus bunny.p, [500, 500]), [1000, 1000], (f2) ->
         if (distance f.p, bunny.p) > (distance f2.p, bunny.p)
-          if (distance f2.p, bunny.p) > (distance f2.p, pos)
+          if (distance f2.p, bunny.p) > (distance f2.p, hunter.p)
             other = true
           else 
             other = false
@@ -352,12 +382,12 @@ step = ->
   bunnies = newbunnies
   doggoal = dogpos
   if doghasbunny
-    if (distance dogpos, pos) < 50
+    if (distance dogpos, hunter.p) < 50
       deathbunnycount++
       doghasbunny = false
     else
       dogspeed = 10
-      doggoal = pos
+      doggoal = hunter.p
   else
     db = {p: [99999, 99999]}
     for db2 in deathbunnies
@@ -368,12 +398,12 @@ step = ->
       dogspeed = 10
       doggoal = db.p
     else if dogrun
-      if (distance dogpos, pos) > 90
+      if (distance dogpos, hunter.p) > 90
         dogspeed = 7
-        doggoal = pos
+        doggoal = hunter.p
       else
         dogrun = false
-    else if (distance dogpos, pos) > 250
+    else if (distance dogpos, hunter.p) > 250
       dogrun = true
   dogpos = walk dogpos, doggoal, dogspeed
   newzombies = new parray 5000, 500
@@ -381,19 +411,19 @@ step = ->
     if nigth < 0.25
       zombie.life -= 0.1
     if zombie.sleep < 1
-      if zombie.subgoalcounter < 1 || (distance zombie.subgoal, zombie.p) < zombie.life / 2 || (distance zombie.p, pos) < 200
-        zombie.subgoal = (pathing zombie.p, pos)[0]
+      if zombie.subgoalcounter < 1 || (distance zombie.subgoal, zombie.p) < zombie.life / 2 || (distance zombie.p, hunter.p) < 400
+        zombie.subgoal = (pathing zombie.p, hunter.p)[0]
         zombie.subgoalcounter = 200
       zombie.subgoalcounter--
       zombie.p = plus zombie.p, (mult (direction zombie.p, zombie.subgoal), zombie.life / 2)
-      zombies.eachin (minus zombie.p, [40, 40]), [80, 80], (other) ->
-        if other != zombie && (distance zombie.p, other.p) < 40 
+      zombies.eachinradius zombie.p, 40, (other) ->
+        if other != zombie
           if other.sleep < 5
             other.sleep += 10
           if 10 > zombie.life > other.life > 0
             other.life--
             zombie.life++
-      if (distance pos, zombie.p) < 10
+      if (distance hunter.p, zombie.p) < 10
         pr "You die! but you got #{deathbunnycount} bunnies!"
         clearInterval frameInterval
     else
@@ -403,7 +433,7 @@ step = ->
   zombies = newzombies
   newdeathbunnies = []
   for db in deathbunnies
-    if (distance db.p, pos) < 50 
+    if (distance db.p, hunter.p) < 50 
       deathbunnycount++
     else if (not doghasbunny) && (distance db.p, dogpos) < 50
       doghasbunny = true
@@ -457,11 +487,6 @@ step = ->
     else
       return
   evt.preventDefault()
-      
-shoot = ->
-  if frameTimer - 4 > lastShoot && !pause
-    arrows.push {h: 30, p: pos, m: mult (direction pos, (plus mp, (minus pos, [500, 250]))), 20}
-    lastShoot = frameTimer
 
 $ ->
   runStubs initStubs
@@ -469,13 +494,11 @@ $ ->
   ($ 'canvas').mousemove (evt) ->
     mp = minus [evt.pageX, evt.pageY], [cnvs.offset().left, cnvs.offset().top]
     evt.preventDefault()
-  ($ 'canvas').click ->
-    shoot()
-  ($ 'canvas').mousedown ->
-    shoot()
-    shooting = true
+  ($ 'canvas').mousedown (evt) ->
+    mp = minus [evt.pageX, evt.pageY], [cnvs.offset().left, cnvs.offset().top]
+    hunter.target = (plus mp, (minus hunter.p, [500, 250]))
     true
   ($ 'canvas').mouseup ->
-    shooting = false
+    hunter.target = null
     true
 

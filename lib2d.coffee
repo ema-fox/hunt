@@ -171,8 +171,19 @@ $ =>
   img.src = src
   img
 
+class protoArray
+  biggestinradius: (p, d, f) ->
+    score = -Infinity
+    res = null
+    @eachinradius p, d, (x) ->
+      xscore = f x
+      if xscore > score
+        score = xscore
+        res = x
+    res
 
-class @stparray
+
+class @stparray extends protoArray
   constructor: (@s) ->
     @es = []
     @ps = for i in [2,4,8,16]
@@ -187,6 +198,11 @@ class @stparray
         @ps[i].add e
         return
     @es.push e
+
+  eachinradius: (p, d, f) ->
+    @eachin (minus p, [d, d]), [d * 2, d * 2], (x) ->
+      if (distance p, x.p) < d + x.r
+        f x
 
   eachin: (p, s, f) ->
     for i in @ps
@@ -212,7 +228,7 @@ class @stparray
     res
 
 
-class @parray
+class @parray extends protoArray
   constructor: (s, @ts) ->
     @es = for x in [0..(s / @ts | 0)]
       for y in [0..(s / @ts | 0)]
@@ -222,25 +238,26 @@ class @parray
     y = e.p[1] / @ts | 0
     @es[x][y].push e
 
-  near: (p) ->
-    x1 = p[0] / @ts | 0
-    y1 = p[1] / @ts | 0
-    res = []
-    for x in [x1-1..x1+1]
-      if @es[x]
-        for y in [y1-1..y1+1]
-          if @es[x][y]
-            res = res.concat(@es[x][y])
-    res
+  sanitize: (x) -> (Math.max (Math.min (x / @ts | 0), @es.length - 1), 0)
 
-  sanitize: (x) -> Math.max (Math.min x, @es.length - 1), 0
+  eachinradius: ([p0, p1], d, f) ->
+    x1 = @sanitize (p0 - d)
+    y1 = @sanitize (p1 - d)
+    x2 = @sanitize (p0 + d)
+    y2 = @sanitize (p1 + d)
+    for x in [x1..x2]
+      for y in [y1..y2]
+        for e in @es[x][y]
+          if (distance [p0, p1], e.p) < d
+            f e
+    undefined
+
 
   eachin: ([p0, p1], [s0, s1], f) ->
-    #bug
-    x1 = @sanitize (p0 / @ts | 0)
-    y1 = @sanitize (p1 / @ts | 0)
-    x2 = @sanitize ((p0 + s0) / @ts | 0)
-    y2 = @sanitize ((p1 + s1) / @ts | 0)
+    x1 = @sanitize p0
+    y1 = @sanitize p1
+    x2 = @sanitize (p0 + s0)
+    y2 = @sanitize (p1 + s1)
     for x in [x1..x2]
       for y in [y1..y2]
         for e in @es[x][y]
