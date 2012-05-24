@@ -1,5 +1,5 @@
 ###
-Copyright (c) 2011 Emanuel Rylke
+Copyright (c) 2011-2012 Emanuel Rylke
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -38,6 +38,8 @@ randpos = ->
 
 hunter = null
 knuth = null
+airfishpos = [0, 0]
+airfishmovement = [0, 0]
 dogpos = null
 doggoal = null
 doghasbunny = false
@@ -186,6 +188,8 @@ draw = ->
   ctx.strokeText "Knuth", knuth.p[0] - 40, knuth.p[1] - 40
   zombies.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
     drawImage ctx, zombie, (minus p, [20, 20])
+
+  fillRect ctx, (minus airfishpos, [20, 20]), [40, 40]
   for {p, m} in arrows
     ctx.beginPath()
     moveTo ctx, p
@@ -297,6 +301,9 @@ step = ->
   if foo
     patch = getPatch hunter.p
     hunter.p = plus patch.p, (mult (direction patch.p, goal), patch.r - 1)
+  airfishmovement = plus airfishmovement, (mult (direction airfishpos, hunter.p), 0.1)
+  airfishmovement = mult airfishmovement, 0.999
+  airfishpos = plus airfishpos, airfishmovement
   bunnies.add {p: randpos(), alarmed: false, life: 100} if bunnies.length() < 5
   flowers.add {p: randpos(), death: false} if ptrue 0.5
   if getTime() - 60 * 1000 > lastZombieWave
@@ -307,7 +314,7 @@ step = ->
   if hunter.target
     hunter.target = (plus mp, (minus hunter.p, [500, 250]))
   hunter.behave()
-  if (distance knuth.p, hunter.p) < 50 && deathbunnycount > 0 && ptrue 0.05
+  if (distance knuth.p, hunter.p) < 50 && deathbunnycount > 0 && ptrue 0.25
     deathbunnycount--
     guldencount++
   knuth.target = null
@@ -424,7 +431,7 @@ step = ->
             other.life--
             zombie.life++
       if (distance hunter.p, zombie.p) < 10
-        pr "You die! but you got #{deathbunnycount} bunnies!"
+        pr "You die! but you got #{deathbunnycount} bunnies and #{guldencount} gulden!"
         clearInterval frameInterval
     else
       zombie.sleep--
