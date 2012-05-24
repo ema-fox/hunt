@@ -7,7 +7,15 @@
   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
   
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  */  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  */  var protoArray;
+  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
+    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
+    function ctor() { this.constructor = child; }
+    ctor.prototype = parent.prototype;
+    child.prototype = new ctor;
+    child.__super__ = parent.prototype;
+    return child;
+  };
   this.zip = function() {
     var i, len, x, xs, _results;
     xs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
@@ -315,7 +323,26 @@
     img.src = src;
     return img;
   };
+  protoArray = (function() {
+    function protoArray() {}
+    protoArray.prototype.biggestinradius = function(p, d, f) {
+      var res, score;
+      score = -Infinity;
+      res = null;
+      this.eachinradius(p, d, function(x) {
+        var xscore;
+        xscore = f(x);
+        if (xscore > score) {
+          score = xscore;
+          return res = x;
+        }
+      });
+      return res;
+    };
+    return protoArray;
+  })();
   this.stparray = (function() {
+    __extends(stparray, protoArray);
     function stparray(s) {
       var i;
       this.s = s;
@@ -347,6 +374,13 @@
         }
       }
       return this.es.push(e);
+    };
+    stparray.prototype.eachinradius = function(p, d, f) {
+      return this.eachin(minus(p, [d, d]), [d * 2, d * 2], function(x) {
+        if ((distance(p, x.p)) < d + x.r) {
+          return f(x);
+        }
+      });
     };
     stparray.prototype.eachin = function(p, s, f) {
       var i, _i, _j, _len, _len2, _ref, _ref2;
@@ -402,6 +436,7 @@
     return stparray;
   })();
   this.parray = (function() {
+    __extends(parray, protoArray);
     function parray(s, ts) {
       var x, y;
       this.ts = ts;
@@ -427,33 +462,37 @@
       y = e.p[1] / this.ts | 0;
       return this.es[x][y].push(e);
     };
-    parray.prototype.near = function(p) {
-      var res, x, x1, y, y1, _ref, _ref2, _ref3, _ref4;
-      x1 = p[0] / this.ts | 0;
-      y1 = p[1] / this.ts | 0;
-      res = [];
-      for (x = _ref = x1 - 1, _ref2 = x1 + 1; _ref <= _ref2 ? x <= _ref2 : x >= _ref2; _ref <= _ref2 ? x++ : x--) {
-        if (this.es[x]) {
-          for (y = _ref3 = y1 - 1, _ref4 = y1 + 1; _ref3 <= _ref4 ? y <= _ref4 : y >= _ref4; _ref3 <= _ref4 ? y++ : y--) {
-            if (this.es[x][y]) {
-              res = res.concat(this.es[x][y]);
+    parray.prototype.sanitize = function(x) {
+      return Math.max(Math.min(x / this.ts | 0, this.es.length - 1), 0);
+    };
+    parray.prototype.eachinradius = function(_arg, d, f) {
+      var e, p0, p1, x, x1, x2, y, y1, y2, _i, _len, _ref;
+      p0 = _arg[0], p1 = _arg[1];
+      x1 = this.sanitize(p0 - d);
+      y1 = this.sanitize(p1 - d);
+      x2 = this.sanitize(p0 + d);
+      y2 = this.sanitize(p1 + d);
+      for (x = x1; x1 <= x2 ? x <= x2 : x >= x2; x1 <= x2 ? x++ : x--) {
+        for (y = y1; y1 <= y2 ? y <= y2 : y >= y2; y1 <= y2 ? y++ : y--) {
+          _ref = this.es[x][y];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            e = _ref[_i];
+            if ((distance([p0, p1], e.p)) < d) {
+              f(e);
             }
           }
         }
       }
-      return res;
-    };
-    parray.prototype.sanitize = function(x) {
-      return Math.max(Math.min(x, this.es.length - 1), 0);
+      return;
     };
     parray.prototype.eachin = function(_arg, _arg2, f) {
       var e, p0, p1, s0, s1, x, x1, x2, y, y1, y2, _i, _len, _ref;
       p0 = _arg[0], p1 = _arg[1];
       s0 = _arg2[0], s1 = _arg2[1];
-      x1 = this.sanitize(p0 / this.ts | 0);
-      y1 = this.sanitize(p1 / this.ts | 0);
-      x2 = this.sanitize((p0 + s0) / this.ts | 0);
-      y2 = this.sanitize((p1 + s1) / this.ts | 0);
+      x1 = this.sanitize(p0);
+      y1 = this.sanitize(p1);
+      x2 = this.sanitize(p0 + s0);
+      y2 = this.sanitize(p1 + s1);
       for (x = x1; x1 <= x2 ? x <= x2 : x >= x2; x1 <= x2 ? x++ : x--) {
         for (y = y1; y1 <= y2 ? y <= y2 : y >= y2; y1 <= y2 ? y++ : y--) {
           _ref = this.es[x][y];
