@@ -133,6 +133,9 @@ initStubs.push ->
   knuth = new Shooter p
   runGame()
 
+rand255 = ->
+  Math.floor(255 * Math.random())
+
 grasscanvas = ($ '<canvas width="5000" height="5000">')[0]
 grassctx = grasscanvas.getContext '2d'
 rockcanvas = ($ '<canvas width="5000" height="5000">')[0]
@@ -142,6 +145,12 @@ initStubs.push ->
   fillRect rockctx, [0, 0], [5000, 5000]
   rockctx.globalCompositeOperation = 'destination-out'
   patches.each ({r, p}) -> 
+    rockctx.beginPath()
+    arc rockctx, p, r, 0, tau + 0.001
+    rockctx.fill()
+  rockctx.globalCompositeOperation = 'source-over'
+  patches.each ({r, p}) ->
+    rockctx.fillStyle = 'rgba(' + rand255() + ', '+ rand255() + ', ' + rand255() + ', 0.1)'
     rockctx.beginPath()
     arc rockctx, p, r, 0, tau + 0.001
     rockctx.fill()
