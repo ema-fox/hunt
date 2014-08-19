@@ -12,7 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 (function() {
-  var Shooter, airfishmovement, airfishpos, arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawPs, flower, flowers, frameInterval, frameTimer, getPatch, getTime, grasscanvas, grassctx, guldencount, hitp, hunter, hunterImg, initStubs, intersect, knuth, lastZombieWave, lastZombieWaveOffset, left, mp, nigth, patches, pathing, pause, randpos, right, rockcanvas, rockctx, runGame, runStubs, shooting, step, up, walk, zombie, zombieWaveSize, zombies,
+  var Shooter, arrows, brownbunny, bunnies, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, down, draw, drawBg, drawOnMap, drawPs, flower, flowers, frameInterval, frameTimer, getPatch, getTime, grasscanvas, grassctx, hitp, hunter, hunterImg, initStubs, intersect, knuth, lastZombieWave, lastZombieWaveOffset, left, mapcanvas, mapctx, mp, nigth, patches, pathing, pause, rand255, randpos, right, rockcanvas, rockctx, runGame, runStubs, shooting, step, up, walk, zombie, zombieWaveSize, zombies,
     __slice = [].slice;
 
   initStubs = [];
@@ -64,10 +64,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
   knuth = null;
 
-  airfishpos = [0, 0];
-
-  airfishmovement = [0, 0];
-
   dogpos = null;
 
   doggoal = null;
@@ -103,8 +99,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   shooting = false;
 
   pause = false;
-
-  guldencount = 0;
 
   up = false;
 
@@ -211,6 +205,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     return runGame();
   });
 
+  rand255 = function() {
+    return Math.floor(255 * Math.random());
+  };
+
   grasscanvas = ($('<canvas width="5000" height="5000">'))[0];
 
   grassctx = grasscanvas.getContext('2d');
@@ -219,17 +217,57 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
   rockctx = rockcanvas.getContext('2d');
 
+  mapcanvas = ($('<canvas width="1000" height="1000">'))[0];
+
+  mapctx = mapcanvas.getContext('2d');
+
+  mapctx.scale(0.2, 0.2);
+
+  mapctx.lineWidth = 10;
+
+  mapctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+
+  mapctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+
   initStubs.push(function() {
     rockctx.fillStyle = '#bbaaaa';
     fillRect(rockctx, [0, 0], [5000, 5000]);
     rockctx.globalCompositeOperation = 'destination-out';
-    return patches.each(function(_arg) {
+    patches.each(function(_arg) {
       var p, r;
       r = _arg.r, p = _arg.p;
       rockctx.beginPath();
       arc(rockctx, p, r, 0, tau + 0.001);
       return rockctx.fill();
     });
+    rockctx.globalCompositeOperation = 'source-over';
+    return patches.each(function(_arg) {
+      var p, r;
+      r = _arg.r, p = _arg.p;
+      rockctx.fillStyle = 'rgba(' + rand255() + ', ' + rand255() + ', ' + rand255() + ', 0.1)';
+      rockctx.beginPath();
+      arc(rockctx, p, r, 0, tau + 0.001);
+      return rockctx.fill();
+    });
+  });
+
+  drawOnMap = function(patch) {
+    var n, other, p, r, _i, _len;
+    if (!patch.drawn) {
+      r = patch.r, p = patch.p, n = patch.n;
+      for (_i = 0, _len = n.length; _i < _len; _i++) {
+        other = n[_i];
+        fillRect(mapctx, minus(intersect(patch, other), [10, 10]), [20, 20]);
+      }
+      mapctx.beginPath();
+      arc(mapctx, p, r, 0, tau + 0.001);
+      mapctx.stroke();
+      return patch.drawn = true;
+    }
+  };
+
+  initStubs.push(function() {
+    return drawOnMap(getPatch(hunter.p));
   });
 
   drawBg = function(name) {
@@ -297,7 +335,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       p = _arg.p;
       return drawImage(ctx, zombie, minus(p, [20, 20]));
     });
-    fillRect(ctx, minus(airfishpos, [20, 20]), [40, 40]);
     for (_j = 0, _len1 = arrows.length; _j < _len1; _j++) {
       _ref = arrows[_j], p = _ref.p, m = _ref.m;
       ctx.beginPath();
@@ -312,6 +349,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     }
     drawPs = [];
     ctx.restore();
+    ctx.save();
+    translate(ctx, minus([500, 250], mult(hunter.p, 0.2)));
+    drawImage(ctx, mapcanvas, [0, 0]);
+    ctx.restore();
     ctx.fillStyle = "rgba(0, 0, 0, " + nigth + ")";
     fillRect(ctx, [0, 0], [1000, 500]);
     for (i = _l = 0; 0 <= deathbunnycount ? _l < deathbunnycount : _l > deathbunnycount; i = 0 <= deathbunnycount ? ++_l : --_l) {
@@ -322,9 +363,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
     ctx.fillText("" + deathbunnycount, 70, 45);
-    ctx.strokeText("" + deathbunnycount, 70, 45);
-    ctx.fillText("" + guldencount, 70, 95);
-    return ctx.strokeText("" + guldencount, 70, 95);
+    return ctx.strokeText("" + deathbunnycount, 70, 45);
   };
 
   hitp = function(bunny) {
@@ -445,7 +484,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   })();
 
   step = function() {
-    var a, bar, db, db2, dist, foo, goal, i, newarrows, newbunnies, newdeathbunnies, newflowers, newzombies, patch, _i, _j, _k, _l, _len, _len1, _len2;
+    var a, bar, db, db2, dist, foo, goal, i, newarrows, newbunnies, newdeathbunnies, newflowers, newzombies, patch, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _ref;
+    _ref = (getPatch(hunter.p)).n;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      patch = _ref[_i];
+      drawOnMap(patch);
+    }
     frameTimer++;
     nigth = ((Math.sin(frameTimer / (25 * 60))) + 1) / 4;
     goal = [hunter.p[0] + (right ? 1 : 0) - (left ? 1 : 0), hunter.p[1] + (down ? 1 : 0) - (up ? 1 : 0)];
@@ -461,9 +505,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       patch = getPatch(hunter.p);
       hunter.p = plus(patch.p, mult(direction(patch.p, goal), patch.r - 1));
     }
-    airfishmovement = plus(airfishmovement, mult(direction(airfishpos, hunter.p), 0.1));
-    airfishmovement = mult(airfishmovement, 0.999);
-    airfishpos = plus(airfishpos, airfishmovement);
     if (bunnies.length() < 5) {
       bunnies.add({
         p: randpos(),
@@ -478,7 +519,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       });
     }
     if (getTime() - 60 * 1000 > lastZombieWave) {
-      for (i = _i = 0; 0 <= zombieWaveSize ? _i < zombieWaveSize : _i > zombieWaveSize; i = 0 <= zombieWaveSize ? ++_i : --_i) {
+      for (i = _j = 0; 0 <= zombieWaveSize ? _j < zombieWaveSize : _j > zombieWaveSize; i = 0 <= zombieWaveSize ? ++_j : --_j) {
         zombies.add({
           p: randpos(),
           sleep: 100,
@@ -494,18 +535,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       hunter.target = plus(mp, minus(hunter.p, [500, 250]));
     }
     hunter.behave();
-    if ((distance(knuth.p, hunter.p)) < 50 && deathbunnycount > 0 && ptrue(0.25)) {
-      deathbunnycount--;
-      guldencount++;
-    }
     knuth.target = null;
     zombies.eachinradius(knuth.p, 400, function(zombie) {
       return knuth.target = zombie.p;
     });
     knuth.behave();
     newarrows = [];
-    for (_j = 0, _len = arrows.length; _j < _len; _j++) {
-      a = arrows[_j];
+    for (_k = 0, _len1 = arrows.length; _k < _len1; _k++) {
+      a = arrows[_k];
       goal = plus(a.p, a.m);
       bar = false;
       patches.eachin(goal, [0, 0], function(patch) {
@@ -609,8 +646,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       db = {
         p: [99999, 99999]
       };
-      for (_k = 0, _len1 = deathbunnies.length; _k < _len1; _k++) {
-        db2 = deathbunnies[_k];
+      for (_l = 0, _len2 = deathbunnies.length; _l < _len2; _l++) {
+        db2 = deathbunnies[_l];
         dist = distance(db2.p, dogpos);
         if (dist < 500 && dist < (distance(dogpos, db.p))) {
           db = db2;
@@ -644,19 +681,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         zombie.subgoalcounter--;
         zombie.p = plus(zombie.p, mult(direction(zombie.p, zombie.subgoal), zombie.life / 2));
         zombies.eachinradius(zombie.p, 40, function(other) {
-          var _ref, _ref1;
+          var _ref1, _ref2;
           if (other !== zombie) {
             if (other.sleep < 5) {
               other.sleep += 10;
             }
-            if (((10 > (_ref1 = zombie.life) && _ref1 > (_ref = other.life)) && _ref > 0)) {
+            if (((10 > (_ref2 = zombie.life) && _ref2 > (_ref1 = other.life)) && _ref1 > 0)) {
               other.life--;
               return zombie.life++;
             }
           }
         });
         if ((distance(hunter.p, zombie.p)) < 10) {
-          pr("You die! but you got " + deathbunnycount + " bunnies and " + guldencount + " gulden!");
+          pr("You die! but you got " + deathbunnycount + " bunnies!");
           clearInterval(frameInterval);
         }
       } else {
@@ -668,8 +705,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     });
     zombies = newzombies;
     newdeathbunnies = [];
-    for (_l = 0, _len2 = deathbunnies.length; _l < _len2; _l++) {
-      db = deathbunnies[_l];
+    for (_m = 0, _len3 = deathbunnies.length; _m < _len3; _m++) {
+      db = deathbunnies[_m];
       if ((distance(db.p, hunter.p)) < 50) {
         deathbunnycount++;
       } else if ((!doghasbunny) && (distance(db.p, dogpos)) < 50) {
