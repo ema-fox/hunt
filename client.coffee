@@ -38,8 +38,6 @@ randpos = ->
 
 hunter = null
 knuth = null
-airfishpos = [0, 0]
-airfishmovement = [0, 0]
 dogpos = null
 doggoal = null
 doghasbunny = false
@@ -124,7 +122,6 @@ runGame = ->
   ), 40
 
 initStubs.push ->
-  #this is stupid and slow but i'm to lazy to fix it now
   {p, r} = patches.biggestinradius [4000, 4000], 2000, (x) -> -1 * (distance [4000, 4000], x.p)
   hunter = new Shooter p
   dogpos = plus p, [r / 2, 0]
@@ -198,7 +195,6 @@ draw = ->
   zombies.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
     drawImage ctx, zombie, (minus p, [20, 20])
 
-  fillRect ctx, (minus airfishpos, [20, 20]), [40, 40]
   for {p, m} in arrows
     ctx.beginPath()
     moveTo ctx, p
@@ -310,9 +306,6 @@ step = ->
   if foo
     patch = getPatch hunter.p
     hunter.p = plus patch.p, (mult (direction patch.p, goal), patch.r - 1)
-  airfishmovement = plus airfishmovement, (mult (direction airfishpos, hunter.p), 0.1)
-  airfishmovement = mult airfishmovement, 0.999
-  airfishpos = plus airfishpos, airfishmovement
   bunnies.add {p: randpos(), alarmed: false, life: 100} if bunnies.length() < 5
   flowers.add {p: randpos(), death: false} if ptrue 0.5
   if getTime() - 60 * 1000 > lastZombieWave
