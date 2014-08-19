@@ -55,7 +55,6 @@ lastZombieWaveOffset = 0
 zombieWaveSize = 1
 shooting = false
 pause = false
-guldencount = 0
 
 up = false
 down = false
@@ -218,8 +217,6 @@ draw = ->
   ctx.fillStyle = '#ffffff'
   ctx.fillText "#{deathbunnycount}", 70, 45
   ctx.strokeText "#{deathbunnycount}", 70, 45
-  ctx.fillText "#{guldencount}", 70, 95
-  ctx.strokeText "#{guldencount}", 70, 95
 
 #reverse hitp checking
 hitp = (bunny) ->
@@ -316,9 +313,6 @@ step = ->
   if hunter.target
     hunter.target = (plus mp, (minus hunter.p, [500, 250]))
   hunter.behave()
-  if (distance knuth.p, hunter.p) < 50 && deathbunnycount > 0 && ptrue 0.25
-    deathbunnycount--
-    guldencount++
   knuth.target = null
   zombies.eachinradius knuth.p, 400, (zombie) ->
     knuth.target = zombie.p
@@ -433,7 +427,7 @@ step = ->
             other.life--
             zombie.life++
       if (distance hunter.p, zombie.p) < 10
-        pr "You die! but you got #{deathbunnycount} bunnies and #{guldencount} gulden!"
+        pr "You die! but you got #{deathbunnycount} bunnies!"
         clearInterval frameInterval
     else
       zombie.sleep--
