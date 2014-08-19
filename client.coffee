@@ -136,6 +136,13 @@ grasscanvas = ($ '<canvas width="5000" height="5000">')[0]
 grassctx = grasscanvas.getContext '2d'
 rockcanvas = ($ '<canvas width="5000" height="5000">')[0]
 rockctx = rockcanvas.getContext '2d'
+mapcanvas = ($ '<canvas width="1000" height="1000">')[0]
+mapctx = mapcanvas.getContext '2d'
+mapctx.scale 0.2, 0.2
+mapctx.lineWidth = 10
+mapctx.strokeStyle = 'rgba(0, 0, 0, 0.1)'
+mapctx.fillStyle = 'rgba(0, 0, 0, 0.1)'
+
 initStubs.push ->
   rockctx.fillStyle = '#bbaaaa'
   fillRect rockctx, [0, 0], [5000, 5000]
@@ -152,6 +159,18 @@ initStubs.push ->
     rockctx.fill()
   #rockctx.globalComhunter.piteOperation = 'source-over'
 
+drawOnMap = (patch) ->
+  if not patch.drawn
+    {r, p, n} = patch
+    for other in n
+      fillRect mapctx, (minus (intersect patch, other), [10, 10]), [20, 20]
+    mapctx.beginPath()
+    arc mapctx, p, r, 0, tau + 0.001
+    mapctx.stroke()
+    patch.drawn = true
+
+initStubs.push ->
+  drawOnMap (getPatch hunter.p)
 
 drawBg = (name) ->
   bg = new Image()
@@ -204,6 +223,12 @@ draw = ->
     fillRect ctx, p, [10, 10]
   drawPs = []
   ctx.restore()
+
+  ctx.save()
+  translate ctx, minus [500, 250], (mult hunter.p, 0.2)
+  drawImage ctx, mapcanvas, [0, 0]
+  ctx.restore()
+
   ctx.fillStyle = "rgba(0, 0, 0, #{nigth})"
   fillRect ctx, [0, 0], [1000, 500]
   #put this in own canvas:
@@ -291,6 +316,10 @@ class Shooter
 
 
 step = ->
+  for patch in (getPatch hunter.p).n
+    drawOnMap patch
+  
+
   frameTimer++
   nigth = (((Math.sin frameTimer / (25 * 60)) + 1) / 4)
   goal = [hunter.p[0] + (if right then 1 else 0) - (if left then 1 else 0), hunter.p[1] + (if down then 1 else 0) - (if up then 1 else 0)]
