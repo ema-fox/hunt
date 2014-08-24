@@ -134,30 +134,12 @@ rand255 = ->
 
 grasscanvas = ($ '<canvas width="5000" height="5000">')[0]
 grassctx = grasscanvas.getContext '2d'
-rockcanvas = ($ '<canvas width="5000" height="5000">')[0]
-rockctx = rockcanvas.getContext '2d'
 mapcanvas = ($ '<canvas width="1000" height="1000">')[0]
 mapctx = mapcanvas.getContext '2d'
 mapctx.scale 0.2, 0.2
 mapctx.lineWidth = 10
 mapctx.strokeStyle = 'rgba(0, 0, 0, 0.1)'
 mapctx.fillStyle = 'rgba(0, 0, 0, 0.1)'
-
-initStubs.push ->
-  rockctx.fillStyle = '#bbaaaa'
-  fillRect rockctx, [0, 0], [5000, 5000]
-  rockctx.globalCompositeOperation = 'destination-out'
-  patches.each ({r, p}) -> 
-    rockctx.beginPath()
-    arc rockctx, p, r, 0, tau + 0.001
-    rockctx.fill()
-  rockctx.globalCompositeOperation = 'source-over'
-  patches.each ({r, p}) ->
-    rockctx.fillStyle = 'rgba(' + rand255() + ', '+ rand255() + ', ' + rand255() + ', 0.1)'
-    rockctx.beginPath()
-    arc rockctx, p, r, 0, tau + 0.001
-    rockctx.fill()
-  #rockctx.globalComhunter.piteOperation = 'source-over'
 
 drawOnMap = (patch) ->
   if not patch.drawn
@@ -172,7 +154,7 @@ drawOnMap = (patch) ->
 initStubs.push ->
   drawOnMap (getPatch hunter.p)
 
-drawBg = (name) ->
+drawBg = (name, andThen) ->
   bg = new Image()
   ($ bg).load ->
     bgsize = bg.width
@@ -182,12 +164,24 @@ drawBg = (name) ->
           for y in [0..(5000 / bgsize | 0)]
             grassctx.drawImage bg, x*bgsize, y*bgsize
           null)(x)
-    initStubs.push ->
-      drawImage grassctx, rockcanvas, [0, 0]
+    initStubs.push andThen
   bg.src = name
 
-drawBg 'bg.png'
-drawBg 'bg2.png'
+initStubs.push ->
+  grassctx.fillStyle = '#44aa00'
+  patches.each ({r, p}) -> 
+    grassctx.beginPath()
+    arc grassctx, p, r, 0, tau + 0.001
+    grassctx.fill()
+  grassctx.globalCompositeOperation = 'source-atop'
+  drawBg 'bg.png', ->
+    drawBg 'bg2.png', ->
+      drawImage grassctx, rockcanvas, [0, 0]
+      patches.each ({r, p}) ->
+        grassctx.fillStyle = 'rgba(' + rand255() + ', '+ rand255() + ', ' + rand255() + ', 0.1)'
+        grassctx.beginPath()
+        arc grassctx, p, r, 0, tau + 0.001
+        grassctx.fill()
 
 draw = ->
   ctx.fillStyle = '#bbaaaa'
