@@ -46,6 +46,7 @@ dogpath = []
 dogspeed = 0
 deathbunnycount = 0
 mp = [0, 0]
+mousePressed = false
 frameInterval = null
 getTime = -> (new Date()).getTime()
 frameTimer = 0
@@ -55,11 +56,6 @@ lastZombieWaveOffset = 0
 zombieWaveSize = 1
 shooting = false
 pause = false
-
-up = false
-down = false
-left = false
-right = false
 
 drawPs = []
 
@@ -322,16 +318,12 @@ step = ->
 
   frameTimer++
   nigth = (((Math.sin frameTimer / (25 * 60)) + 1) / 4)
-  goal = [hunter.p[0] + (if right then 1 else 0) - (if left then 1 else 0), hunter.p[1] + (if down then 1 else 0) - (if up then 1 else 0)]
-  goal = plus hunter.p, (mult (direction hunter.p, goal), 6)
-  foo = true
-  patches.eachin goal, [0, 0], (patch) ->
-    if (distance patch.p, goal) < patch.r - 1
-      hunter.p = goal
-      foo = false
-  if foo
-    patch = getPatch hunter.p
-    hunter.p = plus patch.p, (mult (direction patch.p, goal), patch.r - 1)
+  if mousePressed
+    hunter.goal = (plus mp, (minus hunter.p, [500, 250]))
+  if hunter.goal
+    hunter.p = walk hunter.p, hunter.goal, 6
+    if (distance hunter.p, hunter.goal) < 6
+      hunter.goal = null
   bunnies.add {p: randpos(), alarmed: false, life: 100} if bunnies.length() < 5
   flowers.add {p: randpos(), death: false} if ptrue 0.5
   if getTime() - 60 * 1000 > lastZombieWave
@@ -481,14 +473,6 @@ step = ->
 
 ($ document).keydown (evt) ->
   switch String.fromCharCode(evt.which)
-    when 'A'
-      left = true
-    when 'S'
-      down = true
-    when 'W'
-      up = true
-    when 'D'
-      right = true
     when ' '
       if hunter.target
         hunter.target = null
@@ -513,20 +497,6 @@ step = ->
       return
   evt.preventDefault()
 
-($ document).keyup (evt) ->
-  switch String.fromCharCode evt.which
-    when 'A'
-      left = false
-    when 'S'
-      down = false
-    when 'W'
-      up = false
-    when 'D'
-      right = false
-    else
-      return
-  evt.preventDefault()
-
 $ ->
   runStubs initStubs
   cnvs = $ 'canvas'
@@ -534,8 +504,11 @@ $ ->
     mp = minus [evt.pageX, evt.pageY], [cnvs.offset().left, cnvs.offset().top]
     evt.preventDefault()
   ($ 'canvas').mousedown (evt) ->
+    mousePressed = true
     mp = minus [evt.pageX, evt.pageY], [cnvs.offset().left, cnvs.offset().top]
+    hunter.goal = (plus mp, (minus hunter.p, [500, 250]))
     true
   ($ 'canvas').mouseup ->
+    mousePressed = false
     true
 
