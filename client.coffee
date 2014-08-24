@@ -182,6 +182,12 @@ initStubs.push ->
         arc grassctx, p, r, 0, tau + 0.001
         grassctx.fill()
 
+drawHPBar = (ctx, p, hp, maxhp) ->
+  ctx.fillStyle = '#aa2255'
+  fillRect ctx, (minus p, [20, 25]), [40, 3]
+  ctx.fillStyle = '#00dd00'
+  fillRect ctx, (minus p, [20, 25]), [40 * hp / maxhp, 3]
+
 draw = ->
   ctx.fillStyle = '#bbaaaa'
   fillRect ctx, [0, 0], [1000, 500]
@@ -203,8 +209,9 @@ draw = ->
   ctx.fillStyle = '#ffffff'
   ctx.fillText "Knuth", knuth.p[0] - 40, knuth.p[1] - 40
   ctx.strokeText "Knuth", knuth.p[0] - 40, knuth.p[1] - 40
-  zombies.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
+  zombies.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p, life}) ->
     drawImage ctx, zombie, (minus p, [20, 20])
+    drawHPBar ctx, p, life, 10
 
   for {p, m} in arrows
     ctx.beginPath()
