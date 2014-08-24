@@ -176,7 +176,6 @@ initStubs.push ->
   grassctx.globalCompositeOperation = 'source-atop'
   drawBg 'bg.png', ->
     drawBg 'bg2.png', ->
-      drawImage grassctx, rockcanvas, [0, 0]
       patches.each ({r, p}) ->
         grassctx.fillStyle = 'rgba(' + rand255() + ', '+ rand255() + ', ' + rand255() + ', 0.1)'
         grassctx.beginPath()
