@@ -489,6 +489,13 @@ step = ->
       up = true
     when 'D'
       right = true
+    when ' '
+      if hunter.target
+        hunter.target = null
+      else
+        cnvs = $ 'canvas'
+        mp = minus [evt.pageX, evt.pageY], [cnvs.offset().left, cnvs.offset().top]
+        hunter.target = (plus mp, (minus hunter.p, [500, 250]))
     when 'P'
       if pause
         pause = false
@@ -528,9 +535,7 @@ $ ->
     evt.preventDefault()
   ($ 'canvas').mousedown (evt) ->
     mp = minus [evt.pageX, evt.pageY], [cnvs.offset().left, cnvs.offset().top]
-    hunter.target = (plus mp, (minus hunter.p, [500, 250]))
     true
   ($ 'canvas').mouseup ->
-    hunter.target = null
     true
 
