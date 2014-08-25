@@ -17,12 +17,17 @@ runStubs = (stubs) ->
   else
     setTimeout (-> runStubs stubs), 300
 
+NUM_ALTAR_PIECES = 7
 
 arrows = []
 bunnies = new parray 5000, 500
 deathbunnies = []
 flowers = new parray 5000, 500
 zombies = new parray 5000, 500
+altarPieces = []
+altarPiecesCount = 0
+altarInInventar = false
+altar = null
 patches = new stparray 5000
 @patches = patches
 
@@ -125,6 +130,9 @@ initStubs.push ->
   knuth = new Shooter p
   runGame()
 
+initStubs.push ->
+  altarPieces = (randpos() for i in [0...NUM_ALTAR_PIECES])
+
 rand255 = ->
   Math.floor(255 * Math.random())
 
@@ -191,6 +199,8 @@ draw = ->
   translate ctx, minus [500, 250], hunter.p
   drawImage ctx, grasscanvas, [0, 0]
   ctx.strokeStyle = '#000000'
+  for p in altarPieces
+    fillRect ctx, (minus p, [20, 20]), [40, 40]
   for {p} in deathbunnies
     drawImage ctx, deathbrownbunny, (minus p, [20, 20])
   flowers.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
@@ -201,6 +211,8 @@ draw = ->
   if doghasbunny
     drawImage ctx, deathbrownbunny, (minus dogpos, [10, 10])
   fillRect ctx, (minus knuth.p, [20, 20]), [40, 40]
+  if altar
+    fillRect ctx, (minus altar, [20, 20]), [40, 40]
   drawImage ctx, hunterImg, (minus hunter.p, [20, 20])
   ctx.fillStyle = '#ffffff'
   ctx.fillText "Knuth", knuth.p[0] - 40, knuth.p[1] - 40
@@ -223,6 +235,11 @@ draw = ->
   ctx.save()
   translate ctx, minus [500, 250], (mult hunter.p, 0.2)
   drawImage ctx, mapcanvas, [0, 0]
+  ctx.scale 0.2, 0.2
+  ctx.fillStyle = 'rgba(255,255,255, 0.4)'
+  for p in altarPieces
+    if (getPatch p).drawn
+      fillRect ctx, (minus p, [10, 10]), [20, 20]
   ctx.restore()
 
   ctx.fillStyle = "rgba(0, 0, 0, #{nigth})"
@@ -310,6 +327,22 @@ class Shooter
       arrows.push {h: 30, p: @p, m: mult (direction @p, @target), 20}
       @lastShoot = frameTimer
 
+collectAltarPiece = ->
+  altarPiecesCount++
+  $('#inventar')[0].innerHTML = 'Inventar:<br>Altar Pieces: ' + altarPiecesCount
+  if altarPiecesCount == NUM_ALTAR_PIECES
+    $('#inventar').append('<br><a onclick="javascript:repairAltar()" href="javascript:void(0)">repair altar</a>')
+
+@repairAltar = ->
+  altarPieces = []
+  altarInInventar = true
+  $('#inventar')[0].innerHTML = 'Inventar:<br>Altar: 1<br><a onclick="javascript:placeAltar()" href="javascript:void(0)">place altar</a>'
+  false
+
+@placeAltar = ->
+  altar = hunter.p
+  altarInInventar = false
+  $("#inventar")[0].innerHTML = ''
 
 step = ->
   for patch in (getPatch hunter.p).n
@@ -341,6 +374,12 @@ step = ->
       knuth.target = zombie.p
     foo++
   knuth.behave()
+  altarPieces = altarPieces.filter (a) ->
+    if distance(a, hunter.p) < 40
+      collectAltarPiece()
+      false
+    else
+      true
   newarrows = []
   for a in arrows
     goal = plus a.p, a.m
@@ -446,7 +485,7 @@ step = ->
       zombie.life -= 0.1
     if zombie.sleep < 1
       if zombie.subgoalcounter < 1 || (distance zombie.subgoal, zombie.p) < zombie.life / 2 || (distance zombie.p, hunter.p) < 400
-        zombie.subgoal = (pathing zombie.p, hunter.p)[0]
+        zombie.subgoal = (pathing zombie.p, altar or hunter.p)[0]
         zombie.subgoalcounter = 200
       zombie.subgoalcounter--
       zombie.p = plus zombie.p, (mult (direction zombie.p, zombie.subgoal), zombie.life / 2)
