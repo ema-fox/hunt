@@ -376,8 +376,15 @@ step = ->
     if bunny.alarmed
       bunny.alarmed = dist < 600
       bunnyspeed = 10
-      #rewrite below to get an hunter.pition that is alway reachable
-      bunnygoal = plus bunny.p, mult (direction hunter.p, bunny.p), 100
+      d = 0
+      patch = getPatch bunny.p
+      for other in patch.n
+        inter = intersect patch, other
+        newd = (distance inter, bunny.p)
+        hd = (distance inter, hunter.p)
+        if newd < hd and d < hd
+           d = hd
+           bunnygoal = other.p
     else
       if bunny.life > 1000
         bunny.life -= 200
