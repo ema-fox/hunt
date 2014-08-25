@@ -335,8 +335,11 @@ step = ->
     hunter.target = (plus mp, (minus hunter.p, [500, 250]))
   hunter.behave()
   knuth.target = null
+  foo = 1
   zombies.eachinradius knuth.p, 400, (zombie) ->
-    knuth.target = zombie.p
+    if Math.random() < 1/foo
+      knuth.target = zombie.p
+    foo++
   knuth.behave()
   newarrows = []
   for a in arrows
