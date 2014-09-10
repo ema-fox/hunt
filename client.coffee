@@ -17,7 +17,9 @@ runStubs = (stubs) ->
   else
     setTimeout (-> runStubs stubs), 300
 
-NUM_ALTAR_PIECES = 7
+FAST_PLAY = window.location.hash == '#fast'
+
+NUM_ALTAR_PIECES = if FAST_PLAY then 1 else 7
 
 arrows = []
 bunnies = new parray 5000, 500
@@ -27,7 +29,7 @@ zombies = new parray 5000, 500
 altarPieces = []
 altarPiecesCount = 0
 altarInInventar = false
-altar = null
+altar = {hp: 1000, maxhp: 1000}
 patches = new stparray 5000
 @patches = patches
 
@@ -74,7 +76,7 @@ zombie = loadImg 'zombie.png'
 #control flow of doom !
 #also needs to be optimized
 initStubs.push ->
-  while patches.length() < 50
+  while patches.length() < (if FAST_PLAY then 30 else 50)
     flpatch = {r: 40 + Math.random() * 400, n: []}
     flpatch.p = [flpatch.r + Math.random() * (5000 - flpatch.r * 2), "foo"]
     flpatch.p[1] = 0 - flpatch.r
@@ -187,10 +189,19 @@ initStubs.push ->
         grassctx.fill()
 
 drawHPBar = (ctx, p, hp, maxhp) ->
+  size = Math.pow(maxhp, 0.5) * 4
   ctx.fillStyle = '#aa2255'
-  fillRect ctx, (minus p, [20, 25]), [40, 3]
+  fillRect ctx, (minus p, [size / 2, 25]), [size, 3]
   ctx.fillStyle = '#00dd00'
-  fillRect ctx, (minus p, [20, 25]), [40 * hp / maxhp, 3]
+  fillRect ctx, (minus p, [size / 2, 25]), [size* hp / maxhp, 3]
+
+drawEntity = (ctx, img, {p, hp, maxhp}) ->
+  if img
+    drawImage ctx, img, (minus p, [20, 20])
+  else
+    fillRect ctx, (minus p, [20, 20]), [40, 40]
+  if maxhp
+    drawHPBar ctx, p, hp, maxhp
 
 draw = ->
   ctx.fillStyle = '#bbaaaa'
@@ -201,8 +212,8 @@ draw = ->
   ctx.strokeStyle = '#000000'
   for p in altarPieces
     fillRect ctx, (minus p, [20, 20]), [40, 40]
-  for {p} in deathbunnies
-    drawImage ctx, deathbrownbunny, (minus p, [20, 20])
+  for db in deathbunnies
+    drawEntity ctx, deathbrownbunny, db
   flowers.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
     drawImage ctx, flower, (minus p, [10, 10])
   bunnies.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
@@ -211,15 +222,14 @@ draw = ->
   if doghasbunny
     drawImage ctx, deathbrownbunny, (minus dogpos, [10, 10])
   fillRect ctx, (minus knuth.p, [20, 20]), [40, 40]
-  if altar
-    fillRect ctx, (minus altar, [20, 20]), [40, 40]
+  if altar.p
+    drawEntity ctx, null, altar
   drawImage ctx, hunterImg, (minus hunter.p, [20, 20])
   ctx.fillStyle = '#ffffff'
   ctx.fillText "Knuth", knuth.p[0] - 40, knuth.p[1] - 40
   ctx.strokeText "Knuth", knuth.p[0] - 40, knuth.p[1] - 40
-  zombies.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p, life}) ->
-    drawImage ctx, zombie, (minus p, [20, 20])
-    drawHPBar ctx, p, life, 10
+  zombies.eachin (minus hunter.p, [500, 250]), [1000, 500], (z) ->
+    drawEntity ctx, zombie, z
 
   for {p, m} in arrows
     ctx.beginPath()
@@ -340,7 +350,7 @@ collectAltarPiece = ->
   false
 
 @placeAltar = ->
-  altar = hunter.p
+  altar.p = hunter.p
   altarInInventar = false
   $("#inventar")[0].innerHTML = ''
 
@@ -361,7 +371,8 @@ step = ->
   flowers.add {p: randpos(), death: false} if ptrue 0.5
   if getTime() - 60 * 1000 > lastZombieWave
     for i in [0...zombieWaveSize]
-      zombies.add {p: randpos(), sleep: 100, life: 10, subgoal: [0, 0], subgoalcounter: 0}
+      hp = 5 + Math.random() * 10 | 0
+      zombies.add {p: randpos(), sleep: 100, hp: hp, maxhp: hp, subgoal: [0, 0], subgoalcounter: 0}
     zombieWaveSize++
     lastZombieWave = getTime()
   if hunter.target
@@ -392,7 +403,7 @@ step = ->
     foo = true
     zombies.eachinradius a.p, 20, (zombie) ->
       if foo
-        zombie.life--
+        zombie.hp--
         foo = false
     if a.h > 1 && foo && bar
       a.h -= 1
@@ -481,29 +492,35 @@ step = ->
   dogpos = walk dogpos, doggoal, dogspeed
   newzombies = new parray 5000, 500
   zombies.each (zombie) ->
-    if nigth < 0.25
-      zombie.life -= 0.1
+    if (not FAST_PLAY) and nigth < 0.25
+      zombie.hp -= 0.1
     if zombie.sleep < 1
-      if zombie.subgoalcounter < 1 || (distance zombie.subgoal, zombie.p) < zombie.life / 2 || (distance zombie.p, hunter.p) < 400
-        zombie.subgoal = (pathing zombie.p, altar or hunter.p)[0]
+      if zombie.subgoalcounter < 1 || (distance zombie.subgoal, zombie.p) < zombie.hp / 2 || (distance zombie.p, hunter.p) < 400
+        zombie.subgoal = (pathing zombie.p, altar.p or hunter.p)[0]
         zombie.subgoalcounter = 200
       zombie.subgoalcounter--
-      zombie.p = plus zombie.p, (mult (direction zombie.p, zombie.subgoal), zombie.life / 2)
+      zombie.p = plus zombie.p, (mult (direction zombie.p, zombie.subgoal), zombie.hp / 2)
       zombies.eachinradius zombie.p, 40, (other) ->
         if other != zombie
           if other.sleep < 5
             other.sleep += 10
-          if 10 > zombie.life > other.life > 0
-            other.life--
-            zombie.life++
+          if 0 < zombie.maxhp - zombie.hp < other.maxhp - other.hp
+            other.hp--
+            zombie.hp++
       if (distance hunter.p, zombie.p) < 10
         pr "You die! but you got #{deathbunnycount} bunnies!"
         clearInterval frameInterval
     else
       zombie.sleep--
-    if zombie.life > 0
+    if zombie.hp> 0
       newzombies.add zombie
   zombies = newzombies
+  if altar.p
+    altar.hp = Math.min(altar.maxhp, altar.hp + 0.005)
+    zombies.eachinradius altar.p, 40, (z) ->
+      altar.hp -= 0.01
+      if altar.hp <= 0
+        altar.p = undefined
   newdeathbunnies = []
   for db in deathbunnies
     if (distance db.p, hunter.p) < 50 
