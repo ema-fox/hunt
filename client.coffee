@@ -76,9 +76,9 @@ zombie = loadImg 'zombie.png'
 #control flow of doom !
 #also needs to be optimized
 initStubs.push ->
-  while patches.length() < (if FAST_PLAY then 30 else 50)
+  while patches.length() < (if FAST_PLAY then 10 else 50)
     flpatch = {r: 40 + Math.random() * 400, n: []}
-    flpatch.p = [flpatch.r + Math.random() * (5000 - flpatch.r * 2), "foo"]
+    flpatch.p = [flpatch.r + Math.random() * ((if FAST_PLAY then 1000 else 5000) - flpatch.r * 2), "foo"]
     flpatch.p[1] = 0 - flpatch.r
     loop
       if flpatch.p[0] - flpatch.r < 0 || flpatch.p[0] + flpatch.r > 5000 || flpatch.p[1] + flpatch.r > 5000
@@ -124,7 +124,7 @@ runGame = ->
   ), 40
 
 initStubs.push ->
-  {p, r} = patches.biggestinradius [4000, 4000], 2000, (x) -> -1 * (distance [4000, 4000], x.p)
+  {p, r} = patches.biggestinradius [(if FAST_PLAY then 1000 else 4000), 4000], 2000, (x) -> -1 * (distance [4000, 4000], x.p)
   hunter = new Shooter p
   dogpos = plus p, [r / 2, 0]
   doggoal = hunter.p
@@ -138,8 +138,6 @@ initStubs.push ->
 rand255 = ->
   Math.floor(255 * Math.random())
 
-grasscanvas = ($ '<canvas width="5000" height="5000">')[0]
-grassctx = grasscanvas.getContext '2d'
 mapcanvas = ($ '<canvas width="1000" height="1000">')[0]
 mapctx = mapcanvas.getContext '2d'
 mapctx.scale 0.2, 0.2
@@ -160,33 +158,49 @@ drawOnMap = (patch) ->
 initStubs.push ->
   drawOnMap (getPatch hunter.p)
 
-drawBg = (name, andThen) ->
-  bg = new Image()
-  ($ bg).load ->
-    bgsize = bg.width
-    for x in [0..(5000 / bgsize | 0)]
-      ((x) ->
-        initStubs.push ->
-          for y in [0..(5000 / bgsize | 0)]
-            grassctx.drawImage bg, x*bgsize, y*bgsize
-          null)(x)
-    initStubs.push andThen
-  bg.src = name
+rockbg1 = loadImg 'rock-bg1.png'
+rockbg2 = loadImg 'rock-bg2.png'
+meadowbg1 = loadImg 'bg.png'
+meadowbg2 = loadImg 'bg2.png'
 
-initStubs.push ->
-  grassctx.fillStyle = '#44aa00'
-  patches.each ({r, p}) -> 
-    grassctx.beginPath()
-    arc grassctx, p, r, 0, tau + 0.001
-    grassctx.fill()
-  grassctx.globalCompositeOperation = 'source-atop'
-  drawBg 'bg.png', ->
-    drawBg 'bg2.png', ->
-      patches.each ({r, p}) ->
-        grassctx.fillStyle = 'rgba(' + rand255() + ', '+ rand255() + ', ' + rand255() + ', 0.1)'
-        grassctx.beginPath()
-        arc grassctx, p, r, 0, tau + 0.001
-        grassctx.fill()
+bgTiles = {}
+
+getBgTile = (p) ->
+  if bgTiles[p]
+    bgTiles[p]
+  else
+    can = ($ '<canvas width="1000" height="1000">')[0]
+    pctx = can.getContext '2d'
+    pctx.fillStyle = '#44aa00'
+    translate pctx, minus [0, 0], p
+    patches.eachin p, [1000, 1000], ({r, p}) ->
+      pctx.beginPath()
+      arc pctx, p, r, 0, tau + 0.001
+      pctx.fill()
+    pctx.globalCompositeOperation = 'source-atop'
+    for img in [meadowbg1, meadowbg2]
+      foo = [img.width, img.height]
+      eachinarearange (floorBy2d p, foo), (plus p, [1000, 1000]), foo, (pb) ->
+        drawImage pctx, img, pb
+
+#    patches.eachin p, [1000, 1000], ({r, p}) ->
+      #pctx.fillStyle = 'rgba(' + rand255() + ', '+ rand255() + ', ' + rand255() + ', 0.1)'
+      #pctx.beginPath()
+      #arc pctx, p, r, 0, tau + 0.001
+      #pctx.fill()
+
+    rockcan = ($ '<canvas width="1000" height="1000">')[0]
+    rctx = rockcan.getContext '2d'
+    translate rctx, minus [0, 0], p
+    for img in [rockbg1, rockbg2]
+      foo = [img.width, img.height]
+      eachinarearange (floorBy2d p, foo), (plus p, [1000, 1000]), foo, (pb) ->
+        drawImage rctx, img, pb
+
+    drawImage rctx, can, p
+
+    bgTiles[p] = rockcan
+    rockcan
 
 drawHPBar = (ctx, p, hp, maxhp) ->
   size = Math.pow(maxhp, 0.5) * 4
@@ -204,11 +218,14 @@ drawEntity = (ctx, img, {p, hp, maxhp}) ->
     drawHPBar ctx, p, hp, maxhp
 
 draw = ->
-  ctx.fillStyle = '#bbaaaa'
-  fillRect ctx, [0, 0], [1000, 500]
+  ctx.font = '40px sans-serif'
+  ctx.textBaseline = 'middle'
   ctx.save()
   translate ctx, minus [500, 250], hunter.p
-  drawImage ctx, grasscanvas, [0, 0]
+  eachinarearange (floorBy2d (minus hunter.p, [500, 250]), [1000, 1000]), (plus hunter.p, [500, 250]), [1000, 1000], (pb) ->
+    drawImage ctx, getBgTile(pb), pb
+
+  ctx.fillStyle = '#bbaaaa'
   ctx.strokeStyle = '#000000'
   for p in altarPieces
     fillRect ctx, (minus p, [20, 20]), [40, 40]
@@ -254,17 +271,6 @@ draw = ->
 
   ctx.fillStyle = "rgba(0, 0, 0, #{nigth})"
   fillRect ctx, [0, 0], [1000, 500]
-  #put this in own canvas:
-  for i in [0...deathbunnycount]
-    p = plus [30, 30], [(i ^ (i * 31.31)) % 50, (i ^ (i * 42.42)) % 50]
-    drawImage ctx, deathbrownbunny, p
-  #drawImage ctx, deathbrownbunny, [20, 20]
-
-  ctx.font = '40px sans-serif'
-  ctx.textBaseline = 'middle'
-  ctx.fillStyle = '#ffffff'
-  ctx.fillText "#{deathbunnycount}", 70, 45
-  ctx.strokeText "#{deathbunnycount}", 70, 45
 
 #reverse hitp checking
 hitp = (bunny) ->
@@ -337,22 +343,34 @@ class Shooter
       arrows.push {h: 30, p: @p, m: mult (direction @p, @target), 20}
       @lastShoot = frameTimer
 
+drawInventar = ->
+  res = ''
+  if deathbunnycount > 0
+    res += '<br>Bunnies: ' + deathbunnycount
+  if altarPiecesCount > 0
+    res += '<br>Altar Pieces: ' + altarPiecesCount
+    if altarPiecesCount == NUM_ALTAR_PIECES
+      res +='<br><a onclick="javascript:repairAltar()" href="javascript:void(0)">repair altar</a>'
+  if altarInInventar
+    res += '<br>Altar: 1<br><a onclick="javascript:placeAltar()" href="javascript:void(0)">place altar</a>'
+  if res
+    res = 'Inventar:' + res
+  foo = $('#inventar')[0]
+  if foo.innerHTML != res
+    foo.innerHTML = res
+
 collectAltarPiece = ->
   altarPiecesCount++
-  $('#inventar')[0].innerHTML = 'Inventar:<br>Altar Pieces: ' + altarPiecesCount
-  if altarPiecesCount == NUM_ALTAR_PIECES
-    $('#inventar').append('<br><a onclick="javascript:repairAltar()" href="javascript:void(0)">repair altar</a>')
 
 @repairAltar = ->
-  altarPieces = []
+  altarPiecesCount = 0
   altarInInventar = true
-  $('#inventar')[0].innerHTML = 'Inventar:<br>Altar: 1<br><a onclick="javascript:placeAltar()" href="javascript:void(0)">place altar</a>'
   false
 
 @placeAltar = ->
   altar.p = hunter.p
   altarInInventar = false
-  $("#inventar")[0].innerHTML = ''
+  false
 
 step = ->
   for patch in (getPatch hunter.p).n
@@ -536,6 +554,7 @@ step = ->
       newflowers.add f
   flowers = newflowers
   draw()
+  drawInventar()
 
 ($ document).keydown (evt) ->
   switch String.fromCharCode(evt.which)

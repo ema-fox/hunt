@@ -48,6 +48,9 @@ these are cute but slow
   else
     b + a % b
 
+@floorBy = (a, b) ->
+  a - mod a, b
+
 @plus = ([a0, a1], [b0, b1]) -> [a0 + b0, a1 + b1]
 @minus = ([a0, a1], [b0, b1]) -> [a0 - b0, a1 - b1]
 @min = ([a0, a1], [b0, b1]) -> [(Math.min a0, b0), (Math.min a1, b1)]
@@ -55,6 +58,17 @@ these are cute but slow
 @divi = (xs, y) -> x / y for x in xs
 @floor = (xs) -> x | 0 for x in xs
 @abs = (xs) -> Math.abs x for x in xs
+@floorBy2d = ([a0, a1], [b0, b1]) -> [floorBy(a0, b0), floorBy(a1, b1)]
+
+@eachinarearange =  ([a0, a1], [b0, b1], [c0, c1], f) ->
+  ab1 = a1
+  while a0 < b0
+    a1 = ab1
+    while a1 < b1
+      f [a0, a1]
+      a1 += c1
+    a0 += c0
+  null
 
 @pyth = ([a, b]) -> Math.sqrt (Math.pow a, 2) + (Math.pow b, 2)
 
@@ -149,7 +163,7 @@ $ =>
   ctx.fillRect(p0, p1, s0, s1)
 
 @drawImage = (ctx, img, [p0, p1]) ->
-  ctx.drawImage img, p0, p1
+  ctx.drawImage img, p0 | 0, p1 | 0
 
 @strokeRect = (ctx, [p0, p1], [s0, s1]) ->
   ctx.strokeRect(p0, p1, s0, s1)
@@ -164,7 +178,7 @@ $ =>
   ctx.arc p0, p1, radius, Math.PI * 0.5 - startarc, Math.PI * 0.5 - endarc, foo
 
 @translate = (ctx, [p0, p1]) ->
-  ctx.translate p0, p1
+  ctx.translate p0 | 0, p1 | 0
 
 @loadImg = (src) ->
   img = new Image()
