@@ -25,6 +25,7 @@ arrows = []
 bunnies = new parray 5000, 500
 deathbunnies = []
 flowers = new parray 5000, 500
+trees = new parray 5000, 500
 zombies = new parray 5000, 500
 altarPieces = []
 altarPiecesCount = 0
@@ -114,6 +115,13 @@ initStubs.push ->
       if patch != other
         patch.n.push other
 
+initStubs.push ->
+  patches.each ({r, p}) ->
+    for i in [0...Math.pow(Math.random() * 2, 3) | 0]
+      tp = plus p, mult (sincos (Math.random() * tau)), (r + 10)
+      if not getPatch tp
+        trees.add {p: tp}
+
 runGame = ->
   frameInterval = setInterval (->
     try
@@ -169,6 +177,7 @@ getBgTile = (p) ->
   if bgTiles[p]
     bgTiles[p]
   else
+    cacheTile = true
     can = ($ '<canvas width="1000" height="1000">')[0]
     pctx = can.getContext '2d'
     pctx.fillStyle = '#44aa00'
@@ -179,9 +188,12 @@ getBgTile = (p) ->
       pctx.fill()
     pctx.globalCompositeOperation = 'source-atop'
     for img in [meadowbg1, meadowbg2]
-      foo = [img.width, img.height]
-      eachinarearange (floorBy2d p, foo), (plus p, [1000, 1000]), foo, (pb) ->
-        drawImage pctx, img, pb
+      if img.complete
+        foo = [img.width, img.height]
+        eachinarearange (floorBy2d p, foo), (plus p, [1000, 1000]), foo, (pb) ->
+          drawImage pctx, img, pb
+      else
+        cacheTile = false
 
 #    patches.eachin p, [1000, 1000], ({r, p}) ->
       #pctx.fillStyle = 'rgba(' + rand255() + ', '+ rand255() + ', ' + rand255() + ', 0.1)'
@@ -193,13 +205,17 @@ getBgTile = (p) ->
     rctx = rockcan.getContext '2d'
     translate rctx, minus [0, 0], p
     for img in [rockbg1, rockbg2]
-      foo = [img.width, img.height]
-      eachinarearange (floorBy2d p, foo), (plus p, [1000, 1000]), foo, (pb) ->
-        drawImage rctx, img, pb
+      if img.complete
+        foo = [img.width, img.height]
+        eachinarearange (floorBy2d p, foo), (plus p, [1000, 1000]), foo, (pb) ->
+          drawImage rctx, img, pb
+      else
+        cacheTile = false
 
     drawImage rctx, can, p
 
-    bgTiles[p] = rockcan
+    if cacheTile
+      bgTiles[p] = rockcan
     rockcan
 
 drawHPBar = (ctx, p, hp, maxhp) ->
@@ -254,6 +270,13 @@ draw = ->
     lineTo ctx, plus p, m
     ctx.closePath()
     ctx.stroke()
+
+  ctx.fillStyle = 'rgba(32, 110, 10, 0.8)'
+  trees.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
+    ctx.beginPath()
+    arc ctx, p, 60, 0, tau + 0.001
+    ctx.fill()
+
   for p in drawPs
     fillRect ctx, p, [10, 10]
   drawPs = []
