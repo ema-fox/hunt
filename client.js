@@ -11,7 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  */
 
 (function() {
-  var FAST_PLAY, NUM_ALTAR_PIECES, Shooter, altar, altarInInventar, altarPieces, altarPiecesCount, arrows, bgTiles, brownbunny, bunnies, collectAltarPiece, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, draw, drawEntity, drawHPBar, drawInventar, drawOnMap, drawPs, flower, flowers, frameInterval, frameTimer, getBgTile, getPatch, getTime, hitp, hunter, hunterImg, initStubs, intersect, knuth, lastZombieWave, lastZombieWaveOffset, mapcanvas, mapctx, meadowbg1, meadowbg2, mousePressed, mp, nigth, patches, pathing, pause, rand255, randpos, rockbg1, rockbg2, runGame, runStubs, shooting, step, walk, zombie, zombieWaveSize, zombies,
+  var FAST_PLAY, NUM_ALTAR_PIECES, Shooter, altar, altarInInventar, altarPieces, altarPiecesCount, arrows, bgTiles, brownbunny, bunnies, collectAltarPiece, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, draw, drawEntity, drawHPBar, drawInventar, drawOnMap, drawPs, flower, flowers, frameInterval, frameTimer, getBgTile, getPatch, getTime, hitp, hunter, hunterImg, initStubs, intersect, knuth, lastZombieWave, lastZombieWaveOffset, mapcanvas, mapctx, meadowbg1, meadowbg2, mousePressed, mp, nigth, patches, pathing, pause, rand255, randpos, rockbg1, rockbg2, runGame, runStubs, shooting, step, trees, walk, zombie, zombieWaveSize, zombies,
     __slice = [].slice;
 
   initStubs = [];
@@ -40,6 +40,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   deathbunnies = [];
 
   flowers = new parray(5000, 500);
+
+  trees = new parray(5000, 500);
 
   zombies = new parray(5000, 500);
 
@@ -187,6 +189,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     });
   });
 
+  initStubs.push(function() {
+    return patches.each(function(_arg) {
+      var i, p, r, tp, _i, _ref, _results;
+      r = _arg.r, p = _arg.p;
+      _results = [];
+      for (i = _i = 0, _ref = Math.pow(Math.random() * 2, 3) | 0; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+        tp = plus(p, mult(sincos(Math.random() * tau), r + 10));
+        if (!getPatch(tp)) {
+          _results.push(trees.add({
+            p: tp
+          }));
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    });
+  });
+
   runGame = function() {
     return frameInterval = setInterval((function() {
       var err;
@@ -273,10 +294,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   bgTiles = {};
 
   getBgTile = function(p) {
-    var can, foo, img, pctx, rctx, rockcan, _i, _j, _len, _len1, _ref, _ref1;
+    var cacheTile, can, foo, img, pctx, rctx, rockcan, _i, _j, _len, _len1, _ref, _ref1;
     if (bgTiles[p]) {
       return bgTiles[p];
     } else {
+      cacheTile = true;
       can = ($('<canvas width="1000" height="1000">'))[0];
       pctx = can.getContext('2d');
       pctx.fillStyle = '#44aa00';
@@ -292,10 +314,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       _ref = [meadowbg1, meadowbg2];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         img = _ref[_i];
-        foo = [img.width, img.height];
-        eachinarearange(floorBy2d(p, foo), plus(p, [1000, 1000]), foo, function(pb) {
-          return drawImage(pctx, img, pb);
-        });
+        if (img.complete) {
+          foo = [img.width, img.height];
+          eachinarearange(floorBy2d(p, foo), plus(p, [1000, 1000]), foo, function(pb) {
+            return drawImage(pctx, img, pb);
+          });
+        } else {
+          cacheTile = false;
+        }
       }
       rockcan = ($('<canvas width="1000" height="1000">'))[0];
       rctx = rockcan.getContext('2d');
@@ -303,13 +329,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       _ref1 = [rockbg1, rockbg2];
       for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
         img = _ref1[_j];
-        foo = [img.width, img.height];
-        eachinarearange(floorBy2d(p, foo), plus(p, [1000, 1000]), foo, function(pb) {
-          return drawImage(rctx, img, pb);
-        });
+        if (img.complete) {
+          foo = [img.width, img.height];
+          eachinarearange(floorBy2d(p, foo), plus(p, [1000, 1000]), foo, function(pb) {
+            return drawImage(rctx, img, pb);
+          });
+        } else {
+          cacheTile = false;
+        }
       }
       drawImage(rctx, can, p);
-      bgTiles[p] = rockcan;
+      if (cacheTile) {
+        bgTiles[p] = rockcan;
+      }
       return rockcan;
     }
   };
@@ -388,6 +420,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ctx.closePath();
       ctx.stroke();
     }
+    ctx.fillStyle = 'rgba(32, 110, 10, 0.8)';
+    trees.eachin(minus(hunter.p, [500, 250]), [1000, 500], function(_arg) {
+      var p;
+      p = _arg.p;
+      ctx.beginPath();
+      arc(ctx, p, 60, 0, tau + 0.001);
+      return ctx.fill();
+    });
     for (_l = 0, _len3 = drawPs.length; _l < _len3; _l++) {
       p = drawPs[_l];
       fillRect(ctx, p, [10, 10]);
