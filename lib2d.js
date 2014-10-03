@@ -396,7 +396,33 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   };
 
   protoArray = (function() {
-    function protoArray() {}
+    function protoArray() {
+      this.iterated = 0;
+      this.delQueue = [];
+    }
+
+    protoArray.prototype.iteration = function(f) {
+      var e, _i, _len, _ref;
+      this.iterated++;
+      f();
+      this.iterated--;
+      if (this.iterated === 0) {
+        _ref = this.delQueue;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          e = _ref[_i];
+          this["delete"](e);
+        }
+      }
+      return void 0;
+    };
+
+    protoArray.prototype.del = function(e) {
+      if (this.iterated === 0) {
+        return this["delete"](e);
+      } else {
+        return this.delQueue.push(e);
+      }
+    };
 
     protoArray.prototype.biggestinradius = function(p, d, f) {
       var res, score;
@@ -423,6 +449,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     function stparray(s) {
       var i;
       this.s = s;
+      stparray.__super__.constructor.call(this);
       this.es = [];
       this.ps = (function() {
         var _i, _len, _ref, _results;
@@ -456,6 +483,22 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       return this.es.push(e);
     };
 
+    stparray.prototype["delete"] = function(e) {
+      var i, _i, _len, _ref, _results;
+      i = this.es.indexOf(e);
+      if (i >= 0) {
+        return this.es.splice(i, 1);
+      } else {
+        _ref = this.ps;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          i = _ref[_i];
+          _results.push(i.del(e));
+        }
+        return _results;
+      }
+    };
+
     stparray.prototype.eachinradius = function(p, d, f) {
       return this.eachin(minus(p, [d, d]), [d * 2, d * 2], function(x) {
         if ((distance(p, x.p)) < d + x.r) {
@@ -465,33 +508,41 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     };
 
     stparray.prototype.eachin = function(p, s, f) {
-      var i, _i, _j, _len, _len1, _ref, _ref1;
-      _ref = this.ps;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        i = _ref[_i];
-        i.eachin(p, s, f);
-      }
-      _ref1 = this.es;
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        i = _ref1[_j];
-        f(i);
-      }
-      return void 0;
+      return this.iteration((function(_this) {
+        return function() {
+          var i, _i, _j, _len, _len1, _ref, _ref1;
+          _ref = _this.ps;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            i = _ref[_i];
+            i.eachin(p, s, f);
+          }
+          _ref1 = _this.es;
+          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+            i = _ref1[_j];
+            f(i);
+          }
+          return void 0;
+        };
+      })(this));
     };
 
     stparray.prototype.each = function(f) {
-      var i, _i, _j, _len, _len1, _ref, _ref1;
-      _ref = this.ps;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        i = _ref[_i];
-        i.each(f);
-      }
-      _ref1 = this.es;
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        i = _ref1[_j];
-        f(i);
-      }
-      return void 0;
+      return this.iteration((function(_this) {
+        return function() {
+          var i, _i, _j, _len, _len1, _ref, _ref1;
+          _ref = _this.ps;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            i = _ref[_i];
+            i.each(f);
+          }
+          _ref1 = _this.es;
+          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+            i = _ref1[_j];
+            f(i);
+          }
+          return void 0;
+        };
+      })(this));
     };
 
     stparray.prototype.hist = function() {
@@ -529,6 +580,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     function parray(s, ts) {
       var x, y;
       this.ts = ts;
+      parray.__super__.constructor.call(this);
       this.es = (function() {
         var _i, _ref, _results;
         _results = [];
@@ -553,65 +605,90 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       return this.es[x][y].push(e);
     };
 
+    parray.prototype["delete"] = function(e) {
+      var i, tile, x, y;
+      x = e.p[0] / this.ts | 0;
+      y = e.p[1] / this.ts | 0;
+      tile = this.es[x][y];
+      i = tile.indexOf(e);
+      if (i >= 0) {
+        return tile.splice(i, 1);
+      }
+    };
+
     parray.prototype.sanitize = function(x) {
       return Math.max(Math.min(x / this.ts | 0, this.es.length - 1), 0);
     };
 
     parray.prototype.eachinradius = function(_arg, d, f) {
-      var e, p0, p1, x, x1, x2, y, y1, y2, _i, _j, _k, _len, _ref;
+      var p0, p1;
       p0 = _arg[0], p1 = _arg[1];
-      x1 = this.sanitize(p0 - d);
-      y1 = this.sanitize(p1 - d);
-      x2 = this.sanitize(p0 + d);
-      y2 = this.sanitize(p1 + d);
-      for (x = _i = x1; x1 <= x2 ? _i <= x2 : _i >= x2; x = x1 <= x2 ? ++_i : --_i) {
-        for (y = _j = y1; y1 <= y2 ? _j <= y2 : _j >= y2; y = y1 <= y2 ? ++_j : --_j) {
-          _ref = this.es[x][y];
-          for (_k = 0, _len = _ref.length; _k < _len; _k++) {
-            e = _ref[_k];
-            if ((distance([p0, p1], e.p)) < d) {
-              f(e);
+      return this.iteration((function(_this) {
+        return function() {
+          var e, x, x1, x2, y, y1, y2, _i, _j, _k, _len, _ref;
+          x1 = _this.sanitize(p0 - d);
+          y1 = _this.sanitize(p1 - d);
+          x2 = _this.sanitize(p0 + d);
+          y2 = _this.sanitize(p1 + d);
+          for (x = _i = x1; x1 <= x2 ? _i <= x2 : _i >= x2; x = x1 <= x2 ? ++_i : --_i) {
+            for (y = _j = y1; y1 <= y2 ? _j <= y2 : _j >= y2; y = y1 <= y2 ? ++_j : --_j) {
+              _ref = _this.es[x][y];
+              for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+                e = _ref[_k];
+                if ((distance([p0, p1], e.p)) < d) {
+                  f(e);
+                }
+              }
             }
           }
-        }
-      }
-      return void 0;
+          return void 0;
+        };
+      })(this));
     };
 
     parray.prototype.eachin = function(_arg, _arg1, f) {
-      var e, p0, p1, s0, s1, x, x1, x2, y, y1, y2, _i, _j, _k, _len, _ref;
+      var p0, p1, s0, s1;
       p0 = _arg[0], p1 = _arg[1];
       s0 = _arg1[0], s1 = _arg1[1];
-      x1 = this.sanitize(p0);
-      y1 = this.sanitize(p1);
-      x2 = this.sanitize(p0 + s0);
-      y2 = this.sanitize(p1 + s1);
-      for (x = _i = x1; x1 <= x2 ? _i <= x2 : _i >= x2; x = x1 <= x2 ? ++_i : --_i) {
-        for (y = _j = y1; y1 <= y2 ? _j <= y2 : _j >= y2; y = y1 <= y2 ? ++_j : --_j) {
-          _ref = this.es[x][y];
-          for (_k = 0, _len = _ref.length; _k < _len; _k++) {
-            e = _ref[_k];
-            f(e);
+      return this.iteration((function(_this) {
+        return function() {
+          var e, x, x1, x2, y, y1, y2, _i, _j, _k, _len, _ref;
+          x1 = _this.sanitize(p0);
+          y1 = _this.sanitize(p1);
+          x2 = _this.sanitize(p0 + s0);
+          y2 = _this.sanitize(p1 + s1);
+          for (x = _i = x1; x1 <= x2 ? _i <= x2 : _i >= x2; x = x1 <= x2 ? ++_i : --_i) {
+            for (y = _j = y1; y1 <= y2 ? _j <= y2 : _j >= y2; y = y1 <= y2 ? ++_j : --_j) {
+              _ref = _this.es[x][y];
+              for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+                e = _ref[_k];
+                f(e);
+              }
+            }
           }
-        }
-      }
-      return void 0;
+          return void 0;
+        };
+      })(this));
     };
 
     parray.prototype.each = function(f) {
-      var e, row, tile, _i, _j, _k, _len, _len1, _len2, _ref;
-      _ref = this.es;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        row = _ref[_i];
-        for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
-          tile = row[_j];
-          for (_k = 0, _len2 = tile.length; _k < _len2; _k++) {
-            e = tile[_k];
-            f(e);
+      return this.iteration((function(_this) {
+        return function() {
+          var e, row, tile, _i, _j, _k, _len, _len1, _len2, _ref;
+          _ref = _this.es;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            row = _ref[_i];
+            for (_j = 0, _len1 = row.length; _j < _len1; _j++) {
+              tile = row[_j];
+              for (_k = 0, _len2 = tile.length; _k < _len2; _k++) {
+                e = tile[_k];
+                f(e);
+              }
+            }
           }
-        }
-      }
-      return void 0;
+          return void 0;
+        };
+      })(this));
     };
 
     parray.prototype.length = function() {

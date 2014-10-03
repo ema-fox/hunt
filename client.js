@@ -11,7 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  */
 
 (function() {
-  var FAST_PLAY, NUM_ALTAR_PIECES, Shooter, altar, altarInInventar, altarPieces, altarPiecesCount, arrows, bgTiles, brownbunny, bunnies, collectAltarPiece, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, draw, drawEntity, drawHPBar, drawInventar, drawOnMap, drawPs, flower, flowers, frameInterval, frameTimer, getBgTile, getPatch, getTime, hitp, hunter, hunterImg, initStubs, intersect, knuth, lastZombieWave, lastZombieWaveOffset, mapcanvas, mapctx, meadowbg1, meadowbg2, mousePressed, mp, nigth, patches, pathing, pause, rand255, randpos, rockbg1, rockbg2, runGame, runStubs, shooting, step, trees, walk, zombie, zombieWaveSize, zombies,
+  var AXE_PRICE, FAST_PLAY, NUM_ALTAR_PIECES, Shooter, altar, altarInInventar, altarPieces, altarPiecesCount, arrows, bgTiles, brownbunny, bunnies, collectAltarPiece, deathbrownbunny, deathbunnies, deathbunnycount, dog, doggoal, doghasbunny, dogpath, dogpos, dogrun, dogspeed, draw, drawEntity, drawHPBar, drawInventar, drawOnMap, drawPs, flower, flowers, frameInterval, frameTimer, getBgTile, getPatch, getTime, hasAxe, hitp, hunter, hunterImg, initStubs, intersect, knuth, lastZombieWave, lastZombieWaveOffset, logs, mapcanvas, mapctx, meadowbg1, meadowbg2, mousePressed, mousep, mp, nigth, patches, pathing, pause, rand255, randpos, rockbg1, rockbg2, runGame, runStubs, shooting, step, trees, walk, zombie, zombieWaveSize, zombies,
     __slice = [].slice;
 
   initStubs = [];
@@ -33,6 +33,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
   NUM_ALTAR_PIECES = FAST_PLAY ? 1 : 7;
 
+  AXE_PRICE = FAST_PLAY ? 3 : 12;
+
   arrows = [];
 
   bunnies = new parray(5000, 500);
@@ -41,7 +43,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
   flowers = new parray(5000, 500);
 
-  trees = new parray(5000, 500);
+  trees = new stparray(5000);
 
   zombies = new parray(5000, 500);
 
@@ -55,6 +57,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     hp: 1000,
     maxhp: 1000
   };
+
+  hasAxe = false;
 
   patches = new stparray(5000);
 
@@ -93,6 +97,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   dogspeed = 0;
 
   deathbunnycount = 0;
+
+  logs = 0;
 
   mp = [0, 0];
 
@@ -198,7 +204,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         tp = plus(p, mult(sincos(Math.random() * tau), r + 10));
         if (!getPatch(tp)) {
           _results.push(trees.add({
-            p: tp
+            p: tp,
+            r: Math.random() * 100 + 40
           }));
         } else {
           _results.push(void 0);
@@ -421,12 +428,21 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ctx.stroke();
     }
     ctx.fillStyle = 'rgba(32, 110, 10, 0.8)';
+    ctx.strokeStyle = 'rgb(64, 220, 10)';
     trees.eachin(minus(hunter.p, [500, 250]), [1000, 500], function(_arg) {
-      var p;
-      p = _arg.p;
+      var hp, maxhp, p, r;
+      p = _arg.p, r = _arg.r, hp = _arg.hp, maxhp = _arg.maxhp;
       ctx.beginPath();
-      arc(ctx, p, 60, 0, tau + 0.001);
-      return ctx.fill();
+      arc(ctx, p, r, 0, tau + 0.001);
+      ctx.fill();
+      if (hasAxe && (distance(p, mousep())) < r) {
+        ctx.stroke();
+      }
+      if (maxhp) {
+        ctx.save();
+        drawHPBar(ctx, p, hp, maxhp);
+        return ctx.restore();
+      }
     });
     for (_l = 0, _len3 = drawPs.length; _l < _len3; _l++) {
       p = drawPs[_l];
@@ -569,8 +585,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   drawInventar = function() {
     var foo, res;
     res = '';
+    if (hasAxe) {
+      res += '<br>Axe: 1';
+    }
     if (deathbunnycount > 0) {
       res += '<br>Bunnies: ' + deathbunnycount;
+    }
+    if (logs > 0) {
+      res += '<br>Logs: ' + logs;
     }
     if (altarPiecesCount > 0) {
       res += '<br>Altar Pieces: ' + altarPiecesCount;
@@ -583,6 +605,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     }
     if (res) {
       res = 'Inventar:' + res;
+    }
+    if ((distance(hunter.p, knuth.p)) < 200 && deathbunnycount >= AXE_PRICE && !hasAxe) {
+      res = '<a onclick="javascript:buyAxe()" href="javascript:void(0)">buy axe for ' + AXE_PRICE + ' bunnies</a><br>' + res;
     }
     foo = $('#inventar')[0];
     if (foo.innerHTML !== res) {
@@ -606,6 +631,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     return false;
   };
 
+  this.buyAxe = function() {
+    hasAxe = true;
+    deathbunnycount -= AXE_PRICE;
+    return false;
+  };
+
+  mousep = function() {
+    return plus(mp, minus(hunter.p, [500, 250]));
+  };
+
   step = function() {
     var a, bar, db, db2, dist, foo, goal, hp, i, newarrows, newbunnies, newdeathbunnies, newflowers, newzombies, patch, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _ref;
     _ref = (getPatch(hunter.p)).n;
@@ -616,7 +651,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     frameTimer++;
     nigth = ((Math.sin(frameTimer / (25 * 60))) + 1) / 4;
     if (mousePressed) {
-      hunter.goal = plus(mp, minus(hunter.p, [500, 250]));
+      hunter.goal = mousep();
     }
     if (hunter.goal) {
       hunter.p = walk(hunter.p, hunter.goal, 6);
@@ -653,7 +688,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       lastZombieWave = getTime();
     }
     if (hunter.target) {
-      hunter.target = plus(mp, minus(hunter.p, [500, 250]));
+      hunter.target = mousep();
     }
     hunter.behave();
     knuth.target = null;
@@ -876,6 +911,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       }
     });
     flowers = newflowers;
+    trees.eachinradius(hunter.p, 200, function(tree) {
+      if (tree.maxhp) {
+        tree.hp--;
+        if (tree.hp === 0) {
+          trees.del(tree);
+          return logs++;
+        }
+      }
+    });
     draw();
     return drawInventar();
   };
@@ -924,11 +968,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     ($('canvas')).mousedown(function(evt) {
       mousePressed = true;
       mp = minus([evt.pageX, evt.pageY], [cnvs.offset().left, cnvs.offset().top]);
-      hunter.goal = plus(mp, minus(hunter.p, [500, 250]));
+      hunter.goal = mousep();
       return true;
     });
     return ($('canvas')).mouseup(function() {
       mousePressed = false;
+      if (hasAxe) {
+        trees.eachinradius(mousep(), 0, function(tree) {
+          tree.maxhp = 100;
+          return tree.hp = 100;
+        });
+      }
       return true;
     });
   });
