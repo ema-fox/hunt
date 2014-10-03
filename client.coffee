@@ -525,7 +525,7 @@ step = ->
         bunnygoal = f.p
         if (distance f.p, bunny.p) < 20
           bunny.life += 50
-          f.death = true
+          flowers.del f
     bunny.p = walk bunny.p, bunnygoal, bunnyspeed
     newbunnies.add bunny
   bunnies = newbunnies
@@ -595,11 +595,6 @@ step = ->
     else
       newdeathbunnies.push db
   deathbunnies = newdeathbunnies
-  newflowers = new parray 5000, 500
-  flowers.each (f) ->
-    if not f.death
-      newflowers.add f
-  flowers = newflowers
   trees.eachinradius hunter.p, 200, (tree) ->
     if tree.maxhp
       tree.hp--
