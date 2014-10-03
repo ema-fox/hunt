@@ -186,6 +186,25 @@ $ =>
   img
 
 class protoArray
+  constructor: () ->
+    @iterated = 0
+    @delQueue = []
+
+  iteration: (f) ->
+    @iterated++
+    f()
+    @iterated--
+    if @iterated is 0
+      for e in @delQueue
+        @delete e
+    undefined
+
+  del: (e) ->
+    if @iterated is 0
+      @delete e
+    else
+      @delQueue.push e
+
   biggestinradius: (p, d, f) ->
     score = -Infinity
     res = null
@@ -199,6 +218,7 @@ class protoArray
 
 class @stparray extends protoArray
   constructor: (@s) ->
+    super()
     @es = []
     @ps = for i in [2,4,8,16]
       new parray @s, @s / i
@@ -213,24 +233,34 @@ class @stparray extends protoArray
         return
     @es.push e
 
+  delete: (e) ->
+    i = @es.indexOf e
+    if i >= 0
+      @es.splice i, 1
+    else
+      for i in @ps
+        i.del e
+
   eachinradius: (p, d, f) ->
     @eachin (minus p, [d, d]), [d * 2, d * 2], (x) ->
       if (distance p, x.p) < d + x.r
         f x
 
   eachin: (p, s, f) ->
-    for i in @ps
-      i.eachin p, s, f
-    for i in @es
-      f i
-    undefined
+    @iteration =>
+      for i in @ps
+        i.eachin p, s, f
+      for i in @es
+        f i
+      undefined
 
   each: (f) ->
-    for i in @ps
-      i.each f
-    for i in @es
-      f i
-    undefined
+    @iteration =>
+      for i in @ps
+        i.each f
+      for i in @es
+        f i
+      undefined
 
   hist: ->
     [@es.length, (i.length() for i in @ps)...]
@@ -244,46 +274,59 @@ class @stparray extends protoArray
 
 class @parray extends protoArray
   constructor: (s, @ts) ->
+    super()
     @es = for x in [0..(s / @ts | 0)]
       for y in [0..(s / @ts | 0)]
         []
+
   add: (e) ->
     x = e.p[0] / @ts | 0
     y = e.p[1] / @ts | 0
     @es[x][y].push e
 
+  delete: (e) ->
+    x = e.p[0] / @ts | 0
+    y = e.p[1] / @ts | 0
+    tile = @es[x][y]
+    i = tile.indexOf e
+    if i >= 0
+      tile.splice i, 1
+
   sanitize: (x) -> (Math.max (Math.min (x / @ts | 0), @es.length - 1), 0)
 
   eachinradius: ([p0, p1], d, f) ->
-    x1 = @sanitize (p0 - d)
-    y1 = @sanitize (p1 - d)
-    x2 = @sanitize (p0 + d)
-    y2 = @sanitize (p1 + d)
-    for x in [x1..x2]
-      for y in [y1..y2]
-        for e in @es[x][y]
-          if (distance [p0, p1], e.p) < d
-            f e
-    undefined
+    @iteration =>
+      x1 = @sanitize (p0 - d)
+      y1 = @sanitize (p1 - d)
+      x2 = @sanitize (p0 + d)
+      y2 = @sanitize (p1 + d)
+      for x in [x1..x2]
+        for y in [y1..y2]
+          for e in @es[x][y]
+            if (distance [p0, p1], e.p) < d
+              f e
+      undefined
 
 
   eachin: ([p0, p1], [s0, s1], f) ->
-    x1 = @sanitize p0
-    y1 = @sanitize p1
-    x2 = @sanitize (p0 + s0)
-    y2 = @sanitize (p1 + s1)
-    for x in [x1..x2]
-      for y in [y1..y2]
-        for e in @es[x][y]
-          f e
-    undefined
+    @iteration =>
+      x1 = @sanitize p0
+      y1 = @sanitize p1
+      x2 = @sanitize (p0 + s0)
+      y2 = @sanitize (p1 + s1)
+      for x in [x1..x2]
+        for y in [y1..y2]
+          for e in @es[x][y]
+            f e
+      undefined
 
   each: (f) ->
-    for row in @es
-      for tile in row
-        for e in tile
-          f e
-    undefined
+    @iteration =>
+      for row in @es
+        for tile in row
+          for e in tile
+            f e
+      undefined
 
   length: ->
     res = 0

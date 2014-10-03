@@ -20,17 +20,19 @@ runStubs = (stubs) ->
 FAST_PLAY = window.location.hash == '#fast'
 
 NUM_ALTAR_PIECES = if FAST_PLAY then 1 else 7
+AXE_PRICE = if FAST_PLAY then 3 else 12
 
 arrows = []
 bunnies = new parray 5000, 500
 deathbunnies = []
 flowers = new parray 5000, 500
-trees = new parray 5000, 500
+trees = new stparray 5000
 zombies = new parray 5000, 500
 altarPieces = []
 altarPiecesCount = 0
 altarInInventar = false
 altar = {hp: 1000, maxhp: 1000}
+hasAxe = false
 patches = new stparray 5000
 @patches = patches
 
@@ -53,6 +55,7 @@ dogrun = false
 dogpath = []
 dogspeed = 0
 deathbunnycount = 0
+logs = 0
 mp = [0, 0]
 mousePressed = false
 frameInterval = null
@@ -120,7 +123,7 @@ initStubs.push ->
     for i in [0...Math.pow(Math.random() * 2, 3) | 0]
       tp = plus p, mult (sincos (Math.random() * tau)), (r + 10)
       if not getPatch tp
-        trees.add {p: tp}
+        trees.add {p: tp, r: Math.random() * 100 + 40}
 
 runGame = ->
   frameInterval = setInterval (->
@@ -272,10 +275,17 @@ draw = ->
     ctx.stroke()
 
   ctx.fillStyle = 'rgba(32, 110, 10, 0.8)'
-  trees.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p}) ->
+  ctx.strokeStyle = 'rgb(64, 220, 10)'
+  trees.eachin (minus hunter.p, [500, 250]), [1000, 500], ({p, r, hp, maxhp}) ->
     ctx.beginPath()
-    arc ctx, p, 60, 0, tau + 0.001
+    arc ctx, p, r, 0, tau + 0.001
     ctx.fill()
+    if hasAxe and (distance p, mousep()) < r
+      ctx.stroke()
+    if maxhp
+      ctx.save()
+      drawHPBar ctx, p, hp, maxhp
+      ctx.restore()
 
   for p in drawPs
     fillRect ctx, p, [10, 10]
@@ -368,8 +378,12 @@ class Shooter
 
 drawInventar = ->
   res = ''
+  if hasAxe
+    res += '<br>Axe: 1'
   if deathbunnycount > 0
     res += '<br>Bunnies: ' + deathbunnycount
+  if logs > 0
+    res += '<br>Logs: ' + logs
   if altarPiecesCount > 0
     res += '<br>Altar Pieces: ' + altarPiecesCount
     if altarPiecesCount == NUM_ALTAR_PIECES
@@ -378,6 +392,8 @@ drawInventar = ->
     res += '<br>Altar: 1<br><a onclick="javascript:placeAltar()" href="javascript:void(0)">place altar</a>'
   if res
     res = 'Inventar:' + res
+  if (distance hunter.p, knuth.p) < 200 and deathbunnycount >= AXE_PRICE and not hasAxe
+    res = '<a onclick="javascript:buyAxe()" href="javascript:void(0)">buy axe for ' + AXE_PRICE + ' bunnies</a><br>' + res
   foo = $('#inventar')[0]
   if foo.innerHTML != res
     foo.innerHTML = res
@@ -395,6 +411,14 @@ collectAltarPiece = ->
   altarInInventar = false
   false
 
+@buyAxe = ->
+  hasAxe = true
+  deathbunnycount -= AXE_PRICE
+  false
+
+mousep = ->
+  (plus mp, (minus hunter.p, [500, 250]))
+
 step = ->
   for patch in (getPatch hunter.p).n
     drawOnMap patch
@@ -403,7 +427,7 @@ step = ->
   frameTimer++
   nigth = (((Math.sin frameTimer / (25 * 60)) + 1) / 4)
   if mousePressed
-    hunter.goal = (plus mp, (minus hunter.p, [500, 250]))
+    hunter.goal = mousep()
   if hunter.goal
     hunter.p = walk hunter.p, hunter.goal, 6
     if (distance hunter.p, hunter.goal) < 6
@@ -417,7 +441,7 @@ step = ->
     zombieWaveSize++
     lastZombieWave = getTime()
   if hunter.target
-    hunter.target = (plus mp, (minus hunter.p, [500, 250]))
+    hunter.target = mousep()
   hunter.behave()
   knuth.target = null
   foo = 1
@@ -576,6 +600,12 @@ step = ->
     if not f.death
       newflowers.add f
   flowers = newflowers
+  trees.eachinradius hunter.p, 200, (tree) ->
+    if tree.maxhp
+      tree.hp--
+      if tree.hp is 0
+        trees.del tree
+        logs++
   draw()
   drawInventar()
 
@@ -614,9 +644,13 @@ $ ->
   ($ 'canvas').mousedown (evt) ->
     mousePressed = true
     mp = minus [evt.pageX, evt.pageY], [cnvs.offset().left, cnvs.offset().top]
-    hunter.goal = (plus mp, (minus hunter.p, [500, 250]))
+    hunter.goal = mousep()
     true
   ($ 'canvas').mouseup ->
     mousePressed = false
+    if hasAxe
+      trees.eachinradius mousep(), 0, (tree) ->
+        tree.maxhp = 100
+        tree.hp = 100
     true
 
